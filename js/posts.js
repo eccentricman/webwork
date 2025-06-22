@@ -309,7 +309,7 @@ class PostManager {
                 id: Date.now(),
                 author: {
                     name: window.app.currentUser.username,
-                    avatar: window.app.currentUser.avatar,
+                    avatar: window.app.currentUser.avatar || 'assets/images/avatars/default.jpg',
                     id: window.app.currentUser.id
                 },
                 content: content,

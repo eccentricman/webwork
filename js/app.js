@@ -4,10 +4,16 @@ class CampusLifeApp {
         this.currentUser = null;
         this.posts = [];
         this.currentPage = 'home';
+        this.authManager = null;
         this.init();
     }
 
     init() {
+        // 等待authManager初始化
+        if (typeof AuthManager !== 'undefined') {
+            this.authManager = new AuthManager();
+        }
+        
         this.loadUserData();
         this.loadPosts();
         this.setupEventListeners();
@@ -15,6 +21,11 @@ class CampusLifeApp {
         
         // 显示首页
         this.showPage('home');
+        
+        // 延迟更新关注数，确保社交管理器已初始化
+        setTimeout(() => {
+            this.updateFollowCounts();
+        }, 100);
     }
 
     // 加载用户数据
@@ -22,6 +33,11 @@ class CampusLifeApp {
         const userData = localStorage.getItem('currentUser');
         if (userData) {
             this.currentUser = JSON.parse(userData);
+            
+            // 如果socialManager已初始化，刷新关注数据
+            if (window.socialManager) {
+                window.socialManager.refreshFollowData();
+            }
         }
     }
 
@@ -139,6 +155,7 @@ class CampusLifeApp {
             const button = e.target.closest('.action-btn');
             if (button) {
                 const action = button.getAttribute('data-action');
+                
                 if (action === 'like') {
                     this.handleLike(button);
                 } else if (action === 'comment') {
@@ -146,6 +163,8 @@ class CampusLifeApp {
                 } else if (action === 'share') {
                     this.handleShare(button);
                 } else if (action === 'follow') {
+                    e.preventDefault();
+                    e.stopPropagation();
                     this.handleFollow(button);
                 }
             }
@@ -266,12 +285,64 @@ class CampusLifeApp {
         const feedContainer = document.getElementById('postsContainer');
         if (!feedContainer) return;
 
-        let filteredPosts = this.posts;
+        let filteredPosts = [...this.posts]; // 创建副本避免修改原数组
         
-        if (filter === 'hot') {
-            filteredPosts = this.posts.sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares));
+        if (filter === 'following') {
+            // 显示关注用户的动态
+            if (!this.currentUser) {
+                feedContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <i class="fas fa-user-friends" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <p>请先登录以查看关注的用户动态</p>
+                        <a href="login.html" class="btn btn-primary" style="margin-top: 15px;">立即登录</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // 获取当前用户关注的用户列表
+            let followingList = [];
+            if (window.socialManager) {
+                followingList = window.socialManager.followData.following || [];
+            }
+
+            if (followingList.length === 0) {
+                feedContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <i class="fas fa-user-plus" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <p>你还没有关注任何用户</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">去探索页面发现更多有趣的用户吧！</p>
+                        <button class="btn btn-primary" style="margin-top: 15px;" onclick="app.showPage('explore')">去探索</button>
+                    </div>
+                `;
+                return;
+            }
+
+            // 筛选关注用户的动态
+            filteredPosts = this.posts.filter(post => {
+                return followingList.includes(parseInt(post.author.id)) || followingList.includes(post.author.id.toString());
+            });
+
+            if (filteredPosts.length === 0) {
+                feedContainer.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #666;">
+                        <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                        <p>你关注的用户还没有发布任何动态</p>
+                        <p style="font-size: 0.9rem; margin-top: 10px;">鼓励他们分享更多精彩内容吧！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 按时间倒序排列
+            filteredPosts.sort((a, b) => b.timestamp - a.timestamp);
+        } else if (filter === 'hot') {
+            filteredPosts.sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares));
         } else if (filter === 'latest') {
-            filteredPosts = this.posts.sort((a, b) => b.timestamp - a.timestamp);
+            filteredPosts.sort((a, b) => b.timestamp - a.timestamp);
+        } else {
+            // all - 按时间倒序排列
+            filteredPosts.sort((a, b) => b.timestamp - a.timestamp);
         }
 
         feedContainer.innerHTML = filteredPosts.map(post => this.createPostHTML(post)).join('');
@@ -288,7 +359,7 @@ class CampusLifeApp {
         const timeAgo = this.getTimeAgo(post.timestamp);
         const isLiked = this.currentUser && post.likedBy.includes(this.currentUser.id);
         const isShared = this.currentUser && post.sharedBy.includes(this.currentUser.id);
-        const isFollowing = this.currentUser && this.currentUser.following && this.currentUser.following.includes(post.author.id);
+        const isFollowing = this.currentUser && window.socialManager && window.socialManager.isFollowing(post.author.id);
         const isOwnPost = this.currentUser && this.currentUser.id === post.author.id;
         
         const imagesHTML = post.images && post.images.length > 0 ? `
@@ -306,7 +377,7 @@ class CampusLifeApp {
         return `
             <div class="post-item" data-post-id="${post.id}" onclick="app.goToPostDetail(${post.id})" style="cursor: pointer;">
                 <div class="post-header">
-                    <img src="${post.author.avatar}" alt="${post.author.name}" class="post-avatar" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">
+                    <img src="${post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${post.author.name}" class="post-avatar" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                     <div class="post-info">
                         <div class="post-author" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">${post.author.name}</div>
                         <div class="post-time">${timeAgo}</div>
@@ -321,7 +392,7 @@ class CampusLifeApp {
                 ${post.isRepost && post.originalPost ? `
                     <div class="repost-content" style="border: 1px solid #e1e8ed; border-radius: 8px; padding: 15px; margin-top: 10px; background: #f8f9fa; cursor: pointer;" onclick="event.stopPropagation(); app.showOriginalPost(${post.originalPost.id})">
                         <div class="repost-header" style="display: flex; align-items: center; margin-bottom: 10px;">
-                            <img src="${post.originalPost.author.avatar}" alt="${post.originalPost.author.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')">
+                            <img src="${post.originalPost.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${post.originalPost.author.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')" onerror="this.src='assets/images/avatars/default.jpg'">
                             <span style="font-weight: 600; color: #1da1f2;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')">@${post.originalPost.author.name}</span>
                             <span style="color: #657786; margin-left: 8px;">${this.getTimeAgo(post.originalPost.timestamp)}</span>
                         </div>
@@ -353,7 +424,7 @@ class CampusLifeApp {
                     </div>
                     <div class="post-actions-right">
                         ${!isOwnPost ? `
-                            <button class="action-btn ${isFollowing ? 'following' : ''}" data-action="follow" data-user-id="${post.author.id}">
+                            <button class="action-btn follow-btn ${isFollowing ? 'following' : ''}" data-action="follow" data-user-id="${post.author.id}">
                                 <i class="fas ${isFollowing ? 'fa-user-check' : 'fa-user-plus'}"></i>
                                 <span>${isFollowing ? '已关注' : '关注'}</span>
                             </button>
@@ -445,28 +516,71 @@ class CampusLifeApp {
         }
 
         const userId = button.getAttribute('data-user-id');
-        if (!this.currentUser.following) {
-            this.currentUser.following = [];
-        }
-
-        const isFollowing = this.currentUser.following.includes(userId);
         
-        if (isFollowing) {
-            // 取消关注
-            this.currentUser.following = this.currentUser.following.filter(id => id !== userId);
-            button.classList.remove('following');
-            button.innerHTML = '<i class="fas fa-user-plus"></i><span>关注</span>';
-            this.showNotification('已取消关注', 'success');
+        // 使用社交管理器处理关注逻辑
+        if (window.socialManager) {
+            window.socialManager.toggleFollow(userId);
+            
+            // 更新按钮状态
+            const isFollowing = window.socialManager.isFollowing(userId);
+            
+            if (isFollowing) {
+                button.classList.add('following');
+                button.innerHTML = '<i class="fas fa-user-check"></i><span>已关注</span>';
+            } else {
+                button.classList.remove('following');
+                button.innerHTML = '<i class="fas fa-user-plus"></i><span>关注</span>';
+            }
+            
+            // 更新页面上的关注数显示
+            this.updateFollowCounts();
+            
+            // 如果当前筛选是"关注"，重新渲染动态列表
+            const activeFilter = document.querySelector('.filter-btn.active');
+            if (activeFilter && activeFilter.getAttribute('data-filter') === 'following') {
+                this.renderPosts('following');
+            }
         } else {
-            // 关注
-            this.currentUser.following.push(userId);
-            button.classList.add('following');
-            button.innerHTML = '<i class="fas fa-user-check"></i><span>已关注</span>';
-            this.showNotification('关注成功', 'success');
+            this.showNotification('关注功能暂时不可用', 'warning');
         }
 
-        // 保存用户数据
-        this.authManager.saveUsers();
+        // 确保保存数据
+        if (this.authManager) {
+            this.authManager.saveUsers();
+        }
+    }
+
+    // 更新关注数量显示
+    updateFollowCounts() {
+        if (!window.socialManager || !this.currentUser) return;
+        
+        // 更新侧边栏或其他地方的关注数显示
+        const followingCountElements = document.querySelectorAll('.following-count, #followingCount');
+        const followersCountElements = document.querySelectorAll('.followers-count, #followersCount');
+        
+        const currentUserFollowData = window.socialManager.getUserFollowData(this.currentUser.id);
+        const followingCount = window.socialManager.followData.following.length;
+        const followersCount = currentUserFollowData.followers.length;
+        
+        followingCountElements.forEach(element => {
+            element.textContent = followingCount;
+        });
+        
+        followersCountElements.forEach(element => {
+            element.textContent = followersCount;
+        });
+        
+        // 如果在个人资料页面，也要更新那里的数量
+        const profileFollowingCount = document.getElementById('followingCount');
+        const profileFollowersCount = document.getElementById('followersCount');
+        
+        if (profileFollowingCount) {
+            profileFollowingCount.textContent = followingCount;
+        }
+        
+        if (profileFollowersCount) {
+            profileFollowersCount.textContent = followersCount;
+        }
     }
 
     // 跳转到用户个人主页
@@ -506,7 +620,7 @@ class CampusLifeApp {
                 <div class="modal-body">
                     <div class="post-item">
                         <div class="post-header">
-                            <img src="${originalPost.author.avatar}" alt="${originalPost.author.name}" class="post-avatar" onclick="app.goToUserProfile('${originalPost.author.id}')" style="cursor: pointer;">
+                            <img src="${originalPost.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${originalPost.author.name}" class="post-avatar" onclick="app.goToUserProfile('${originalPost.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                             <div class="post-info">
                                 <div class="post-author" onclick="app.goToUserProfile('${originalPost.author.id}')" style="cursor: pointer;">${originalPost.author.name}</div>
                                 <div class="post-time">${this.getTimeAgo(originalPost.timestamp)}</div>
@@ -607,7 +721,7 @@ class CampusLifeApp {
             id: Date.now(),
             author: {
                 name: this.currentUser.username,
-                avatar: this.currentUser.avatar || 'https://via.placeholder.com/50x50/667eea/ffffff?text=' + this.currentUser.username.charAt(0),
+                avatar: this.currentUser.avatar || 'assets/images/avatars/default.jpg',
                 id: this.currentUser.id
             },
             content: content,
@@ -714,7 +828,10 @@ class CampusLifeApp {
                 userMenu.style.display = 'block';
                 const userAvatar = document.getElementById('userAvatar');
                 if (userAvatar) {
-                    userAvatar.src = this.currentUser.avatar || 'https://via.placeholder.com/40x40/667eea/ffffff?text=' + (this.currentUser.username || this.currentUser.nickname || 'U').charAt(0);
+                    userAvatar.src = this.currentUser.avatar || 'assets/images/avatars/default.jpg';
+                    userAvatar.onerror = function() {
+                        this.src = 'assets/images/avatars/default.jpg';
+                    };
                 }
                 
                 // 显示或隐藏管理员链接

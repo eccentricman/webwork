@@ -431,7 +431,8 @@
                 const currentUser = localStorage.getItem('currentUser');
                 if (currentUser) {
                     // 已经登录，重定向到个人主页
-                    window.location.href = 'profile.html';
+                    sessionStorage.removeItem('viewingUserId');
+                window.location.href = 'profile.html';
                     return;
                 }
             }

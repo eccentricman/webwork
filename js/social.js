@@ -7,6 +7,11 @@ class SocialManager {
         this.shareData = this.loadShareData();
         this.setupEventListeners();
     }
+    
+    // 刷新关注数据（当用户切换时调用）
+    refreshFollowData() {
+        this.followData = this.loadFollowData();
+    }
 
     // 设置事件监听器
     setupEventListeners() {
@@ -51,15 +56,28 @@ class SocialManager {
 
     // 加载关注数据
     loadFollowData() {
-        return JSON.parse(localStorage.getItem('followData')) || {
-            following: [], // 我关注的人
-            followers: []  // 关注我的人
+        const currentUserId = window.app?.currentUser?.id;
+        if (!currentUserId) {
+            return {
+                following: [], // 我关注的人
+                followers: []  // 关注我的人
+            };
+        }
+        
+        const key = `followData_${currentUserId}`;
+        return JSON.parse(localStorage.getItem(key)) || {
+            following: [],
+            followers: []
         };
     }
 
     // 保存关注数据
     saveFollowData() {
-        localStorage.setItem('followData', JSON.stringify(this.followData));
+        const currentUserId = window.app?.currentUser?.id;
+        if (currentUserId) {
+            const key = `followData_${currentUserId}`;
+            localStorage.setItem(key, JSON.stringify(this.followData));
+        }
     }
 
     // 加载消息数据
@@ -258,7 +276,7 @@ class SocialManager {
             <div class="modal-content modal-large">
                 <div class="modal-header">
                     <div class="message-header">
-                        <img src="${user.avatar}" alt="${user.username}" class="user-avatar">
+                        <img src="${user.avatar || 'assets/images/avatars/default.jpg'}" alt="${user.username}" class="user-avatar" onerror="this.src='assets/images/avatars/default.jpg'">
                         <div>
                             <h3>${user.username}</h3>
                             <span class="user-status">在线</span>
@@ -447,7 +465,7 @@ class SocialManager {
                     </div>
                     <div class="post-preview">
                         <div class="post-author">
-                            <img src="${post.author.avatar}" alt="${post.author.name}" class="user-avatar">
+                            <img src="${post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${post.author.name}" class="user-avatar" onerror="this.src='assets/images/avatars/default.jpg'">
                             <span>${post.author.name}</span>
                         </div>
                         <div class="post-content">${utils.truncateText(post.content, 100)}</div>
@@ -543,7 +561,7 @@ class SocialManager {
             id: Date.now(),
             author: {
                 name: window.app.currentUser.username,
-                avatar: window.app.currentUser.avatar,
+                                        avatar: window.app.currentUser.avatar || 'assets/images/avatars/default.jpg',
                 id: window.app.currentUser.id
             },
             content: repostContent,
@@ -672,7 +690,7 @@ class SocialManager {
                     <div class="user-list">
                         ${users.length > 0 ? users.map(user => `
                             <div class="user-item">
-                                <img src="${user.avatar}" alt="${user.username}" class="user-avatar">
+                                <img src="${user.avatar || 'assets/images/avatars/default.jpg'}" alt="${user.username}" class="user-avatar" onerror="this.src='assets/images/avatars/default.jpg'">
                                 <div class="user-info">
                                     <div class="user-name">${user.username}</div>
                                     <div class="user-desc">${user.bio || '这个人很懒，什么都没写'}</div>
@@ -751,7 +769,7 @@ class SocialManager {
         
         container.innerHTML = users.map(user => `
             <div class="recommended-user">
-                <img src="${user.avatar}" alt="${user.username}" class="user-avatar">
+                <img src="${user.avatar || 'assets/images/avatars/default.jpg'}" alt="${user.username}" class="user-avatar" onerror="this.src='assets/images/avatars/default.jpg'">
                 <div class="user-info">
                     <div class="user-name">${user.username}</div>
                     <div class="user-reason">${user.reason}</div>

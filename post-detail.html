@@ -297,10 +297,7 @@
                 <!-- 帖子内容将在这里动态加载 -->
             </div>
             
-            <!-- 统计栏 -->
-            <div class="stats-bar" id="statsBar">
-                <!-- 统计数据将在这里动态加载 -->
-            </div>
+
             
             <!-- 评论区 -->
             <div class="comments-section">
@@ -379,7 +376,6 @@
                     this.post = posts.find(p => p.id === this.postId);
                     if (this.post) {
                         this.renderPost();
-                        this.renderStats();
                     } else {
                         this.showNotification('帖子不存在', 'error');
                         setTimeout(() => {
@@ -421,7 +417,7 @@
                 document.getElementById('postDetailContent').innerHTML = `
                     <div class="post-item">
                         <div class="post-header">
-                            <img src="${this.post.author.avatar}" alt="${this.post.author.name}" class="post-avatar" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;">
+                            <img src="${this.post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${this.post.author.name}" class="post-avatar" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                             <div class="post-info">
                                 <div class="post-author" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;">${this.post.author.name}</div>
                                 <div class="post-time">${timeAgo}</div>
@@ -450,24 +446,7 @@
                 `;
             }
             
-            renderStats() {
-                if (!this.post) return;
-                
-                document.getElementById('statsBar').innerHTML = `
-                    <div class="stat-item">
-                        <div class="stat-number">${this.post.likes}</div>
-                        <div class="stat-label">点赞</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${this.comments.length}</div>
-                        <div class="stat-label">评论</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number">${this.post.shares}</div>
-                        <div class="stat-label">转发</div>
-                    </div>
-                `;
-            }
+
             
             renderComments() {
                 const commentsList = document.getElementById('commentsList');
@@ -493,7 +472,7 @@
                 
                 return `
                     <div class="comment-item" data-comment-id="${comment.id}">
-                        <img src="${comment.author.avatar}" alt="${comment.author.name}" class="comment-avatar" onclick="goToUserProfile('${comment.author.id}')" style="cursor: pointer;">
+                        <img src="${comment.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${comment.author.name}" class="comment-avatar" onclick="goToUserProfile('${comment.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                         <div class="comment-content">
                             <div class="comment-header">
                                 <span class="comment-author" onclick="goToUserProfile('${comment.author.id}')">${comment.author.name}</span>
@@ -566,11 +545,13 @@
                     commentForm.style.display = 'flex';
                     
                     if (userAvatar) {
-                        userAvatar.src = this.currentUser.avatar || 'https://via.placeholder.com/40x40/667eea/ffffff?text=' + this.currentUser.username.charAt(0);
+                        userAvatar.src = this.currentUser.avatar || 'assets/images/avatars/default.jpg';
+                        userAvatar.onerror = function() { this.src = 'assets/images/avatars/default.jpg'; };
                     }
                     
                     if (commentUserAvatar) {
-                        commentUserAvatar.src = this.currentUser.avatar || 'https://via.placeholder.com/40x40/667eea/ffffff?text=' + this.currentUser.username.charAt(0);
+                        commentUserAvatar.src = this.currentUser.avatar || 'assets/images/avatars/default.jpg';
+                        commentUserAvatar.onerror = function() { this.src = 'assets/images/avatars/default.jpg'; };
                     }
                 } else {
                     authButtons.style.display = 'flex';
@@ -598,7 +579,6 @@
                 
                 this.savePost();
                 this.updateLikeButton();
-                this.renderStats();
             }
             
             updateLikeButton() {
@@ -664,7 +644,7 @@
                     id: Date.now(),
                     author: {
                         name: this.currentUser.username,
-                        avatar: this.currentUser.avatar || 'https://via.placeholder.com/40x40/667eea/ffffff?text=' + this.currentUser.username.charAt(0),
+                        avatar: this.currentUser.avatar || 'assets/images/avatars/default.jpg',
                         id: this.currentUser.id
                     },
                     content: content,
@@ -684,7 +664,6 @@
                 document.getElementById('submitComment').disabled = true;
                 
                 this.renderComments();
-                this.renderStats();
                 document.getElementById('commentCountBtn').textContent = this.post.comments;
                 
                 this.showNotification('评论发表成功', 'success');

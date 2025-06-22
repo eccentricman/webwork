@@ -46,10 +46,10 @@
                 
                 <!-- 用户菜单（登录后显示） -->
                 <div class="user-menu" id="userMenu" style="display: none;">
-                    <img src="https://via.placeholder.com/40" alt="头像" class="user-avatar" id="userAvatar" onclick="window.location.href='profile.html'" style="cursor: pointer;">
+                    <img src="https://via.placeholder.com/40" alt="头像" class="user-avatar" id="userAvatar" onclick="sessionStorage.removeItem('viewingUserId'); window.location.href='profile.html';" style="cursor: pointer;">
                     <div class="dropdown">
                         <div class="dropdown-content">
-                            <a href="profile.html" id="profileLink">
+                            <a href="profile.html" id="profileLink" onclick="sessionStorage.removeItem('viewingUserId');">
                                 <i class="fas fa-user"></i>
                                 个人主页
                             </a>
@@ -326,9 +326,16 @@
             app = new CampusLifeApp();
             window.app = app;
             
+            // 确保authManager在app中正确设置
+            if (app && typeof AuthManager !== 'undefined' && window.authManager) {
+                app.authManager = window.authManager;
+            }
+            
             // 初始化社交管理器
             if (typeof SocialManager !== 'undefined') {
                 window.socialManager = new SocialManager();
+                // 绑定社交管理器的更新事件
+                window.socialManager.init();
             }
         });
     </script>
