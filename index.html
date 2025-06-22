@@ -48,23 +48,11 @@
                                 <i class="fas fa-user"></i>
                                 个人主页
                             </a>
-                            <a href="#" id="followersLink">
-                                <i class="fas fa-users"></i>
-                                我的粉丝
-                            </a>
-                            <a href="#" id="followingLink">
-                                <i class="fas fa-heart"></i>
-                                我的关注
-                            </a>
-                            <a href="#" id="settingsLink">
-                                <i class="fas fa-cog"></i>
-                                设置
-                            </a>
                             <a href="admin.html" id="adminLink" style="display: none;">
                                 <i class="fas fa-shield-alt"></i>
                                 管理员面板
                             </a>
-                            <a href="#" id="logoutBtn" onclick="logout()">
+                            <a href="#" id="logoutBtn" onclick="logout()" class="logout-menu-item">
                                 <i class="fas fa-sign-out-alt"></i>
                                 退出登录
                             </a>
@@ -117,10 +105,21 @@
                         <div class="sidebar-section">
                             <h3>校园公告</h3>
                             <div class="announcements">
-                                <!-- 校园公告将在这里动态生成 -->
-                                <div class="no-data">
-                                    <i class="fas fa-bullhorn"></i>
-                                    <p>暂无公告</p>
+                                <div class="announcement-item">
+                                    <div class="announcement-title">2025年暑期实习招聘会通知</div>
+                                    <div class="announcement-date">2025年6月15日</div>
+                                </div>
+                                <div class="announcement-item">
+                                    <div class="announcement-title">期末考试安排及注意事项</div>
+                                    <div class="announcement-date">2025年6月10日</div>
+                                </div>
+                                <div class="announcement-item">
+                                    <div class="announcement-title">毕业典礼活动安排</div>
+                                    <div class="announcement-date">2025年6月8日</div>
+                                </div>
+                                <div class="announcement-item">
+                                    <div class="announcement-title">图书馆夏季开放时间调整</div>
+                                    <div class="announcement-date">2025年6月5日</div>
                                 </div>
                             </div>
                         </div>

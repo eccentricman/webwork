@@ -436,7 +436,13 @@ class CampusLifeApp {
                         <div class="post-author" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">${authorInfo.username || authorInfo.name}</div>
                         <div class="post-time">${timeAgo}</div>
                     </div>
-
+                    ${isOwnPost ? `
+                        <div class="post-menu">
+                            <button class="menu-btn" onclick="event.stopPropagation(); app.showPostMenu(${post.id})">
+                                <i class="fas fa-ellipsis-h"></i>
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
                 <div class="post-content">${post.content}</div>
                 ${post.isRepost && post.originalPost ? `
@@ -902,9 +908,176 @@ class CampusLifeApp {
         console.log('渲染探索页面');
     }
 
-    // 显示动态菜单（已移除）
+    // 显示动态菜单
     showPostMenu(postId) {
-        // 功能已移除
+        // 移除已存在的菜单
+        const existingMenu = document.querySelector('.post-menu-dropdown');
+        if (existingMenu) {
+            existingMenu.remove();
+            return;
+        }
+        
+        const menuBtn = document.querySelector(`[data-post-id="${postId}"] .menu-btn`);
+        if (!menuBtn) return;
+        
+        const dropdown = document.createElement('div');
+        dropdown.className = 'post-menu-dropdown';
+        dropdown.innerHTML = `
+            <button class="menu-item" onclick="app.editPost(${postId})">
+                <i class="fas fa-edit"></i> 编辑动态
+            </button>
+            <button class="menu-item danger" onclick="app.deletePost(${postId})">
+                <i class="fas fa-trash"></i> 删除动态
+            </button>
+        `;
+        
+        menuBtn.parentNode.appendChild(dropdown);
+        
+        // 点击其他地方关闭菜单
+        setTimeout(() => {
+            document.addEventListener('click', this.closeMenuHandler.bind(this), true);
+        }, 0);
+    }
+    
+    // 关闭菜单处理器
+    closeMenuHandler(e) {
+        const menu = document.querySelector('.post-menu-dropdown');
+        if (menu && !menu.contains(e.target) && !e.target.closest('.menu-btn')) {
+            menu.remove();
+            document.removeEventListener('click', this.closeMenuHandler, true);
+        }
+    }
+    
+    // 编辑动态
+    editPost(postId) {
+        // 关闭菜单
+        const menu = document.querySelector('.post-menu-dropdown');
+        if (menu) {
+            menu.remove();
+            document.removeEventListener('click', this.closeMenuHandler, true);
+        }
+        
+        const post = this.posts.find(p => p.id === postId);
+        if (!post) return;
+        
+        // 获取动态元素
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement) return;
+        
+        const postContentElement = postElement.querySelector('.post-content');
+        if (!postContentElement) return;
+        
+        // 创建编辑表单
+        const editForm = document.createElement('div');
+        editForm.className = 'edit-form';
+        editForm.innerHTML = `
+            <textarea class="edit-textarea" placeholder="分享你的想法...">${post.content}</textarea>
+            <div class="edit-actions">
+                <button class="edit-btn secondary" onclick="app.cancelEdit(${postId})">取消</button>
+                <button class="edit-btn primary" onclick="app.saveEdit(${postId})">保存</button>
+            </div>
+        `;
+        
+        // 隐藏原内容，显示编辑表单
+        postContentElement.style.display = 'none';
+        postContentElement.parentNode.insertBefore(editForm, postContentElement.nextSibling);
+        
+        // 聚焦到文本框
+        const textarea = editForm.querySelector('.edit-textarea');
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+    
+    // 取消编辑
+    cancelEdit(postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement) return;
+        
+        const editForm = postElement.querySelector('.edit-form');
+        const postContentElement = postElement.querySelector('.post-content');
+        
+        if (editForm) {
+            editForm.remove();
+        }
+        if (postContentElement) {
+            postContentElement.style.display = 'block';
+        }
+    }
+    
+    // 保存编辑
+    saveEdit(postId) {
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (!postElement) return;
+        
+        const textarea = postElement.querySelector('.edit-textarea');
+        if (!textarea) return;
+        
+        const newContent = textarea.value.trim();
+        if (!newContent) {
+            this.showNotification('动态内容不能为空', 'warning');
+            return;
+        }
+        
+        if (newContent.length > 1000) {
+            this.showNotification('动态内容不能超过1000字', 'warning');
+            return;
+        }
+        
+        // 更新动态内容
+        const post = this.posts.find(p => p.id === postId);
+        if (post) {
+            post.content = newContent;
+            post.updatedAt = Date.now();
+            
+            // 保存到localStorage
+            this.savePosts();
+            
+            // 更新显示
+            const postContentElement = postElement.querySelector('.post-content');
+            if (postContentElement) {
+                postContentElement.textContent = newContent;
+                postContentElement.style.display = 'block';
+            }
+            
+            // 移除编辑表单
+            const editForm = postElement.querySelector('.edit-form');
+            if (editForm) {
+                editForm.remove();
+            }
+            
+            this.showNotification('动态更新成功', 'success');
+        }
+    }
+    
+    // 删除动态
+    deletePost(postId) {
+        // 关闭菜单
+        const menu = document.querySelector('.post-menu-dropdown');
+        if (menu) {
+            menu.remove();
+            document.removeEventListener('click', this.closeMenuHandler, true);
+        }
+        
+        // 确认删除
+        if (!confirm('确定要删除这条动态吗？删除后无法恢复。')) {
+            return;
+        }
+        
+        // 从数组中删除动态
+        this.posts = this.posts.filter(p => p.id !== postId);
+        
+        // 保存到localStorage
+        this.savePosts();
+        
+        // 删除评论数据
+        localStorage.removeItem(`comments_${postId}`);
+        
+        this.showNotification('动态删除成功', 'success');
+        
+        // 延迟后跳转到首页并刷新
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1000);
     }
 
     // 退出登录

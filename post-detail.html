@@ -199,6 +199,122 @@
             color: var(--primary-color);
         }
         
+        .post-menu {
+            position: relative;
+        }
+        
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: var(--transition);
+            font-size: 16px;
+        }
+        
+        .menu-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text-color);
+        }
+        
+        .post-menu-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            min-width: 120px;
+            overflow: hidden;
+        }
+        
+        .menu-item {
+            display: block;
+            width: 100%;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            text-align: left;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 14px;
+            color: var(--text-color);
+        }
+        
+        .menu-item:hover {
+            background: var(--hover-bg);
+        }
+        
+        .menu-item.danger {
+            color: var(--error-color);
+        }
+        
+        .menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .edit-form {
+            padding: 20px;
+            background: var(--hover-bg);
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+        }
+        
+        .edit-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        
+        .edit-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+        }
+        
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .edit-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+        
+        .edit-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .edit-btn.primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .edit-btn.secondary {
+            background: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        .edit-btn.secondary:hover {
+            background: var(--text-muted);
+        }
+        
         .comment-action.liked {
             color: var(--error-color);
         }
@@ -423,6 +539,9 @@
                 const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
                 const authorInfo = allUsers.find(u => u.id === this.post.author.id) || this.post.author;
                 
+                // 检查是否是当前用户的动态
+                const isOwnPost = this.currentUser && String(this.currentUser.id) === String(this.post.author.id);
+                
                 document.getElementById('postDetailContent').innerHTML = `
                     <div class="post-item">
                         <div class="post-header">
@@ -431,6 +550,13 @@
                                 <div class="post-author" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;">${authorInfo.username || authorInfo.name}</div>
                                 <div class="post-time">${timeAgo}</div>
                             </div>
+                            ${isOwnPost ? `
+                                <div class="post-menu">
+                                    <button class="menu-btn" onclick="postDetailManager.showPostMenu()">
+                                        <i class="fas fa-ellipsis-h"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="post-content">${this.post.content}</div>
                         ${imagesHTML}
@@ -798,6 +924,163 @@
                 setTimeout(() => {
                     notification.classList.remove('show');
                 }, 3000);
+            }
+            
+            // 显示动态菜单
+            showPostMenu() {
+                // 移除已存在的菜单
+                const existingMenu = document.querySelector('.post-menu-dropdown');
+                if (existingMenu) {
+                    existingMenu.remove();
+                    return;
+                }
+                
+                const menuBtn = document.querySelector('.menu-btn');
+                const dropdown = document.createElement('div');
+                dropdown.className = 'post-menu-dropdown';
+                dropdown.innerHTML = `
+                    <button class="menu-item" onclick="postDetailManager.editPost()">
+                        <i class="fas fa-edit"></i> 编辑动态
+                    </button>
+                    <button class="menu-item danger" onclick="postDetailManager.deletePost()">
+                        <i class="fas fa-trash"></i> 删除动态
+                    </button>
+                `;
+                
+                menuBtn.parentNode.appendChild(dropdown);
+                
+                // 点击其他地方关闭菜单
+                setTimeout(() => {
+                    document.addEventListener('click', this.closeMenuHandler.bind(this), true);
+                }, 0);
+            }
+            
+            // 关闭菜单处理器
+            closeMenuHandler(e) {
+                const menu = document.querySelector('.post-menu-dropdown');
+                if (menu && !menu.contains(e.target) && !e.target.closest('.menu-btn')) {
+                    menu.remove();
+                    document.removeEventListener('click', this.closeMenuHandler, true);
+                }
+            }
+            
+            // 编辑动态
+            editPost() {
+                // 关闭菜单
+                const menu = document.querySelector('.post-menu-dropdown');
+                if (menu) {
+                    menu.remove();
+                    document.removeEventListener('click', this.closeMenuHandler, true);
+                }
+                
+                // 获取当前动态内容元素
+                const postContentElement = document.querySelector('.post-content');
+                if (!postContentElement) return;
+                
+                // 创建编辑表单
+                const editForm = document.createElement('div');
+                editForm.className = 'edit-form';
+                editForm.innerHTML = `
+                    <textarea class="edit-textarea" placeholder="分享你的想法...">${this.post.content}</textarea>
+                    <div class="edit-actions">
+                        <button class="edit-btn secondary" onclick="postDetailManager.cancelEdit()">取消</button>
+                        <button class="edit-btn primary" onclick="postDetailManager.saveEdit()">保存</button>
+                    </div>
+                `;
+                
+                // 隐藏原内容，显示编辑表单
+                postContentElement.style.display = 'none';
+                postContentElement.parentNode.insertBefore(editForm, postContentElement.nextSibling);
+                
+                // 聚焦到文本框
+                const textarea = editForm.querySelector('.edit-textarea');
+                textarea.focus();
+                textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+            }
+            
+            // 取消编辑
+            cancelEdit() {
+                const editForm = document.querySelector('.edit-form');
+                const postContentElement = document.querySelector('.post-content');
+                
+                if (editForm) {
+                    editForm.remove();
+                }
+                if (postContentElement) {
+                    postContentElement.style.display = 'block';
+                }
+            }
+            
+            // 保存编辑
+            saveEdit() {
+                const textarea = document.querySelector('.edit-textarea');
+                if (!textarea) return;
+                
+                const newContent = textarea.value.trim();
+                if (!newContent) {
+                    this.showNotification('动态内容不能为空', 'warning');
+                    return;
+                }
+                
+                if (newContent.length > 1000) {
+                    this.showNotification('动态内容不能超过1000字', 'warning');
+                    return;
+                }
+                
+                // 更新动态内容
+                this.post.content = newContent;
+                this.post.updatedAt = Date.now();
+                
+                // 保存到localStorage
+                this.savePost();
+                
+                // 更新显示
+                const postContentElement = document.querySelector('.post-content');
+                if (postContentElement) {
+                    postContentElement.textContent = newContent;
+                    postContentElement.style.display = 'block';
+                }
+                
+                // 移除编辑表单
+                const editForm = document.querySelector('.edit-form');
+                if (editForm) {
+                    editForm.remove();
+                }
+                
+                this.showNotification('动态更新成功', 'success');
+            }
+            
+            // 删除动态
+            deletePost() {
+                // 关闭菜单
+                const menu = document.querySelector('.post-menu-dropdown');
+                if (menu) {
+                    menu.remove();
+                    document.removeEventListener('click', this.closeMenuHandler, true);
+                }
+                
+                // 确认删除
+                if (!confirm('确定要删除这条动态吗？删除后无法恢复。')) {
+                    return;
+                }
+                
+                // 从localStorage中删除动态
+                const postsData = localStorage.getItem('posts');
+                if (postsData) {
+                    const posts = JSON.parse(postsData);
+                    const updatedPosts = posts.filter(p => p.id !== this.postId);
+                    localStorage.setItem('posts', JSON.stringify(updatedPosts));
+                }
+                
+                // 删除评论数据
+                localStorage.removeItem(`comments_${this.postId}`);
+                
+                this.showNotification('动态删除成功', 'success');
+                
+                // 延迟跳转回首页
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1000);
             }
         }
         
