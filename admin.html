@@ -21,17 +21,56 @@
             padding: 30px;
             border-radius: 15px;
             margin-bottom: 30px;
-            text-align: center;
         }
 
-        .admin-header h1 {
+        .admin-header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-title {
+            text-align: left;
+        }
+
+        .admin-title h1 {
             margin: 0;
             font-size: 2.5rem;
         }
 
-        .admin-header p {
+        .admin-title p {
             margin: 10px 0 0;
             opacity: 0.9;
+        }
+
+        .admin-actions {
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .logout-btn i {
+            font-size: 16px;
         }
 
         .admin-tabs {
@@ -334,16 +373,22 @@
     </style>
 </head>
 <body>
-    <div class="back-btn" onclick="window.location.href='index.html'">
-        <i class="fas fa-arrow-left"></i>
-    </div>
-
     <div class="notification" id="notification"></div>
 
     <div class="admin-container">
         <div class="admin-header">
-            <h1><i class="fas fa-shield-alt"></i> 管理员后台</h1>
-            <p>用户管理 · 内容审核 · 系统统计</p>
+            <div class="admin-header-content">
+                <div class="admin-title">
+                    <h1><i class="fas fa-shield-alt"></i> 管理员后台</h1>
+                    <p>用户管理 · 内容审核 · 系统统计</p>
+                </div>
+                <div class="admin-actions">
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        退出登录
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="stats-grid">
@@ -509,13 +554,13 @@
 
             loadUsers() {
                 const tbody = document.getElementById('usersTableBody');
-                const users = this.authManager.users.filter(u => u.studentId !== 'admin');
+                const users = this.authManager.users.filter(u => !u.isAdmin);
                 
                 tbody.innerHTML = users.map(user => `
                     <tr>
                         <td>
-                            <img src="${user.avatar || `https://via.placeholder.com/40x40/667eea/ffffff?text=${user.username.charAt(0)}`}" 
-                                 alt="头像" class="user-avatar">
+                            <img src="${user.avatar || 'assets/images/avatars/default.jpg'}" 
+                                 alt="头像" class="user-avatar" onerror="this.src='assets/images/avatars/default.jpg'">
                         </td>
                         <td>${user.username}</td>
                         <td>${user.studentId}</td>
@@ -552,7 +597,7 @@
                 container.innerHTML = posts.map(post => `
                     <div class="post-item">
                         <div class="post-author">
-                            <img src="${post.author.avatar || `https://via.placeholder.com/30x30/667eea/ffffff?text=${post.author.name.charAt(0)}`}" alt="头像">
+                            <img src="${post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="头像" onerror="this.src='assets/images/avatars/default.jpg'">
                             <strong>${post.author.name}</strong>
                         </div>
                         <div class="post-content">${post.content}</div>
@@ -631,7 +676,7 @@
 
             searchUsers(query) {
                 const tbody = document.getElementById('usersTableBody');
-                const users = this.authManager.users.filter(u => u.studentId !== 'admin');
+                const users = this.authManager.users.filter(u => !u.isAdmin);
                 
                 const filteredUsers = users.filter(user => 
                     user.username.toLowerCase().includes(query.toLowerCase()) ||
@@ -642,8 +687,8 @@
                 tbody.innerHTML = filteredUsers.map(user => `
                     <tr>
                         <td>
-                            <img src="${user.avatar || `https://via.placeholder.com/40x40/667eea/ffffff?text=${user.username.charAt(0)}`}" 
-                                 alt="头像" class="user-avatar">
+                            <img src="${user.avatar || 'assets/images/avatars/default.jpg'}" 
+                                 alt="头像" class="user-avatar" onerror="this.src='assets/images/avatars/default.jpg'">
                         </td>
                         <td>${user.username}</td>
                         <td>${user.studentId}</td>
@@ -685,7 +730,7 @@
                 container.innerHTML = filteredPosts.map(post => `
                     <div class="post-item">
                         <div class="post-author">
-                            <img src="${post.author.avatar || `https://via.placeholder.com/30x30/667eea/ffffff?text=${post.author.name.charAt(0)}`}" alt="头像">
+                            <img src="${post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="头像" onerror="this.src='assets/images/avatars/default.jpg'">
                             <strong>${post.author.name}</strong>
                         </div>
                         <div class="post-content">${post.content}</div>
@@ -708,6 +753,23 @@
                     notification.classList.remove('show');
                 }, 3000);
             }
+        }
+
+        // 退出登录函数
+        function logout() {
+            // 清除本地存储的用户数据
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('rememberMe');
+            
+            // 显示退出成功提示
+            const notification = document.getElementById('notification');
+            notification.textContent = '已成功退出登录';
+            notification.className = 'notification show success';
+            
+            // 延迟跳转到登录页面
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
         }
 
         // 初始化管理员系统
