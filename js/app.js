@@ -33,11 +33,6 @@ class CampusLifeApp {
         const userData = localStorage.getItem('currentUser');
         if (userData) {
             this.currentUser = JSON.parse(userData);
-            
-            // 如果socialManager已初始化，刷新关注数据
-            if (window.socialManager) {
-                window.socialManager.refreshFollowData();
-            }
         }
     }
 
@@ -55,65 +50,7 @@ class CampusLifeApp {
 
     // 获取初始示例数据
     getInitialPosts() {
-        return [
-            {
-                id: 1,
-                author: {
-                    name: '张小明',
-                    avatar: 'https://via.placeholder.com/50x50/667eea/ffffff?text=张',
-                    id: 'user1'
-                },
-                content: '今天的校园生活真是充实！刚刚参加完社团活动，认识了很多志同道合的朋友。大学生活就是要多尝试，多体验！ #校园生活 #社团活动',
-                images: ['https://via.placeholder.com/400x300/f093fb/ffffff?text=校园风景'],
-                tags: ['校园生活', '社团活动'],
-                timestamp: Date.now() - 3600000,
-                likes: 15,
-                comments: 3,
-                shares: 2,
-                privacy: 'public',
-                likedBy: [],
-                sharedBy: []
-            },
-            {
-                id: 2,
-                author: {
-                    name: '李小红',
-                    avatar: 'https://via.placeholder.com/50x50/764ba2/ffffff?text=李',
-                    id: 'user2'
-                },
-                content: '图书馆学习打卡📚 期末考试加油！和室友一起复习，效率翻倍～',
-                images: ['https://via.placeholder.com/400x300/667eea/ffffff?text=图书馆'],
-                tags: ['学习', '期末考试'],
-                timestamp: Date.now() - 7200000,
-                likes: 8,
-                comments: 1,
-                shares: 0,
-                privacy: 'public',
-                likedBy: [],
-                sharedBy: []
-            },
-            {
-                id: 3,
-                author: {
-                    name: '王大华',
-                    avatar: 'https://via.placeholder.com/50x50/f5576c/ffffff?text=王',
-                    id: 'user3'
-                },
-                content: '食堂新推出的麻辣香锅太好吃了！强烈推荐给大家～价格实惠，分量足够！',
-                images: [
-                    'https://via.placeholder.com/200x200/4facfe/ffffff?text=美食1',
-                    'https://via.placeholder.com/200x200/f093fb/ffffff?text=美食2'
-                ],
-                tags: ['美食', '食堂推荐'],
-                timestamp: Date.now() - 10800000,
-                likes: 22,
-                comments: 5,
-                shares: 3,
-                privacy: 'public',
-                likedBy: [],
-                sharedBy: []
-            }
-        ];
+        return [];
     }
 
     // 设置事件监听器
@@ -185,6 +122,22 @@ class CampusLifeApp {
         if (publishForm) {
             publishForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                this.handlePublish();
+            });
+        }
+
+        // 图片上传功能
+        const imageInput = document.getElementById('imageInput');
+        if (imageInput) {
+            imageInput.addEventListener('change', (e) => {
+                this.handleImageUpload(e);
+            });
+        }
+
+        // 发布按钮单独绑定
+        const publishBtn = document.getElementById('publishBtn');
+        if (publishBtn) {
+            publishBtn.addEventListener('click', () => {
                 this.handlePublish();
             });
         }
@@ -362,9 +315,14 @@ class CampusLifeApp {
         const isFollowing = this.currentUser && window.socialManager && window.socialManager.isFollowing(post.author.id);
         const isOwnPost = this.currentUser && this.currentUser.id === post.author.id;
         
+        // 获取作者的最新信息（包括头像）
+        const authorInfo = this.authManager && this.authManager.users ? 
+            this.authManager.users.find(u => u.id === post.author.id) || post.author :
+            post.author;
+        
         const imagesHTML = post.images && post.images.length > 0 ? `
             <div class="post-images ${post.images.length === 1 ? 'single' : post.images.length === 2 ? 'double' : 'multiple'}">
-                ${post.images.map(img => `<img src="${img}" alt="动态图片" class="post-image" onclick="app.showImageModal('${img}')"/>`).join('')}
+                ${post.images.map(img => `<img src="${img}" alt="动态图片" class="post-image" onclick="app.showImageModal('${img}')" onerror="this.style.display='none'"/>`).join('')}
             </div>
         ` : '';
 
@@ -377,9 +335,9 @@ class CampusLifeApp {
         return `
             <div class="post-item" data-post-id="${post.id}" onclick="app.goToPostDetail(${post.id})" style="cursor: pointer;">
                 <div class="post-header">
-                    <img src="${post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${post.author.name}" class="post-avatar" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
+                    <img src="${authorInfo.avatar || 'assets/images/avatars/default.jpg'}" alt="${authorInfo.username || authorInfo.name}" class="post-avatar" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                     <div class="post-info">
-                        <div class="post-author" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">${post.author.name}</div>
+                        <div class="post-author" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">${authorInfo.username || authorInfo.name}</div>
                         <div class="post-time">${timeAgo}</div>
                     </div>
                     <div class="post-menu">
@@ -392,14 +350,14 @@ class CampusLifeApp {
                 ${post.isRepost && post.originalPost ? `
                     <div class="repost-content" style="border: 1px solid #e1e8ed; border-radius: 8px; padding: 15px; margin-top: 10px; background: #f8f9fa; cursor: pointer;" onclick="event.stopPropagation(); app.showOriginalPost(${post.originalPost.id})">
                         <div class="repost-header" style="display: flex; align-items: center; margin-bottom: 10px;">
-                            <img src="${post.originalPost.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${post.originalPost.author.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')" onerror="this.src='assets/images/avatars/default.jpg'">
+                            <img src="${(this.authManager && this.authManager.users ? this.authManager.users.find(u => u.id === post.originalPost.author.id)?.avatar : null) || post.originalPost.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${post.originalPost.author.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')" onerror="this.src='assets/images/avatars/default.jpg'">
                             <span style="font-weight: 600; color: #1da1f2;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')">@${post.originalPost.author.name}</span>
                             <span style="color: #657786; margin-left: 8px;">${this.getTimeAgo(post.originalPost.timestamp)}</span>
                         </div>
                         <div style="color: #14171a;">${post.originalPost.content}</div>
                         ${post.originalPost.images && post.originalPost.images.length > 0 ? `
                             <div style="margin-top: 10px;">
-                                ${post.originalPost.images.slice(0, 1).map(img => `<img src="${img}" alt="图片" style="max-width: 100%; border-radius: 4px;" onclick="event.stopPropagation(); app.showImageModal('${img}')">`).join('')}
+                                ${post.originalPost.images.slice(0, 1).map(img => `<img src="${img}" alt="图片" style="max-width: 100%; border-radius: 4px; object-fit: cover;" onclick="event.stopPropagation(); app.showImageModal('${img}')" onerror="this.style.display='none'">`).join('')}
                                 ${post.originalPost.images.length > 1 ? `<span style="color: #657786; font-size: 0.9rem;">+${post.originalPost.images.length - 1}张图片</span>` : ''}
                             </div>
                         ` : ''}
@@ -517,23 +475,9 @@ class CampusLifeApp {
 
         const userId = button.getAttribute('data-user-id');
         
-        // 使用社交管理器处理关注逻辑
+        // 使用社交管理器处理关注逻辑（socialManager内部已处理通知和按钮状态）
         if (window.socialManager) {
             window.socialManager.toggleFollow(userId);
-            
-            // 更新按钮状态
-            const isFollowing = window.socialManager.isFollowing(userId);
-            
-            if (isFollowing) {
-                button.classList.add('following');
-                button.innerHTML = '<i class="fas fa-user-check"></i><span>已关注</span>';
-            } else {
-                button.classList.remove('following');
-                button.innerHTML = '<i class="fas fa-user-plus"></i><span>关注</span>';
-            }
-            
-            // 更新页面上的关注数显示
-            this.updateFollowCounts();
             
             // 如果当前筛选是"关注"，重新渲染动态列表
             const activeFilter = document.querySelector('.filter-btn.active');
@@ -543,44 +487,14 @@ class CampusLifeApp {
         } else {
             this.showNotification('关注功能暂时不可用', 'warning');
         }
-
-        // 确保保存数据
-        if (this.authManager) {
-            this.authManager.saveUsers();
-        }
     }
 
     // 更新关注数量显示
     updateFollowCounts() {
         if (!window.socialManager || !this.currentUser) return;
         
-        // 更新侧边栏或其他地方的关注数显示
-        const followingCountElements = document.querySelectorAll('.following-count, #followingCount');
-        const followersCountElements = document.querySelectorAll('.followers-count, #followersCount');
-        
-        const currentUserFollowData = window.socialManager.getUserFollowData(this.currentUser.id);
-        const followingCount = window.socialManager.followData.following.length;
-        const followersCount = currentUserFollowData.followers.length;
-        
-        followingCountElements.forEach(element => {
-            element.textContent = followingCount;
-        });
-        
-        followersCountElements.forEach(element => {
-            element.textContent = followersCount;
-        });
-        
-        // 如果在个人资料页面，也要更新那里的数量
-        const profileFollowingCount = document.getElementById('followingCount');
-        const profileFollowersCount = document.getElementById('followersCount');
-        
-        if (profileFollowingCount) {
-            profileFollowingCount.textContent = followingCount;
-        }
-        
-        if (profileFollowersCount) {
-            profileFollowersCount.textContent = followersCount;
-        }
+        // 直接使用socialManager的updateFollowCounts方法
+        window.socialManager.updateFollowCounts();
     }
 
     // 跳转到用户个人主页
@@ -698,6 +612,68 @@ class CampusLifeApp {
         });
     }
 
+    // 处理图片上传
+    handleImageUpload(event) {
+        const files = event.target.files;
+        const previewContainer = document.getElementById('imagePreview');
+        
+        if (!previewContainer) return;
+        
+        // 清空之前的预览
+        previewContainer.innerHTML = '';
+        
+        // 存储上传的图片
+        this.uploadedImages = [];
+        
+        Array.from(files).forEach((file, index) => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imageData = e.target.result;
+                    this.uploadedImages.push(imageData);
+                    
+                    // 创建预览元素
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${imageData}" alt="预览图片" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                        <button type="button" class="remove-image" onclick="app.removeUploadedImage(${index})" style="position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
+                    `;
+                    previewItem.style.position = 'relative';
+                    previewItem.style.display = 'inline-block';
+                    previewItem.style.margin = '5px';
+                    
+                    previewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // 移除上传的图片
+    removeUploadedImage(index) {
+        if (this.uploadedImages) {
+            this.uploadedImages.splice(index, 1);
+            // 重新渲染预览
+            const previewContainer = document.getElementById('imagePreview');
+            if (previewContainer) {
+                previewContainer.innerHTML = '';
+                this.uploadedImages.forEach((imageData, i) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${imageData}" alt="预览图片" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                        <button type="button" class="remove-image" onclick="app.removeUploadedImage(${i})" style="position: absolute; top: 5px; right: 5px; background: red; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer;">×</button>
+                    `;
+                    previewItem.style.position = 'relative';
+                    previewItem.style.display = 'inline-block';
+                    previewItem.style.margin = '5px';
+                    previewContainer.appendChild(previewItem);
+                });
+            }
+        }
+    }
+
     // 处理发布
     handlePublish() {
         if (!this.currentUser) {
@@ -716,6 +692,12 @@ class CampusLifeApp {
         // 提取标签
         const tags = this.extractTags(content);
         
+        // 确保当前用户在users数组中
+        if (this.authManager && !this.authManager.users.find(u => u.id === this.currentUser.id)) {
+            this.authManager.users.push(this.currentUser);
+            this.authManager.saveUsers();
+        }
+        
         // 创建新动态
         const newPost = {
             id: Date.now(),
@@ -725,7 +707,7 @@ class CampusLifeApp {
                 id: this.currentUser.id
             },
             content: content,
-            images: [], // 这里可以添加图片上传功能
+            images: this.uploadedImages || [], // 使用上传的图片
             tags: tags,
             timestamp: Date.now(),
             likes: 0,
@@ -739,8 +721,17 @@ class CampusLifeApp {
         this.posts.unshift(newPost);
         this.savePosts();
         
-        // 清空表单
-        document.getElementById('publishForm').reset();
+        // 清空表单和上传的图片
+        const publishForm = document.getElementById('publishForm');
+        if (publishForm) {
+            publishForm.reset();
+        }
+        document.getElementById('postContent').value = '';
+        const imagePreview = document.getElementById('imagePreview');
+        if (imagePreview) {
+            imagePreview.innerHTML = '';
+        }
+        this.uploadedImages = [];
         
         // 显示成功消息并跳转到首页
         this.showNotification('动态发布成功！', 'success');

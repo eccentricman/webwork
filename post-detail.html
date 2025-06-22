@@ -404,7 +404,7 @@
                 
                 const imagesHTML = this.post.images && this.post.images.length > 0 ? `
                     <div class="post-images ${this.post.images.length === 1 ? 'single' : this.post.images.length === 2 ? 'double' : 'multiple'}">
-                        ${this.post.images.map(img => `<img src="${img}" alt="动态图片" class="post-image" onclick="showImageModal('${img}')" style="cursor: pointer;"/>`).join('')}
+                        ${this.post.images.map(img => `<img src="${img}" alt="动态图片" class="post-image" onclick="showImageModal('${img}')" style="cursor: pointer;" onerror="this.style.display='none'"/>`).join('')}
                     </div>
                 ` : '';
                 
@@ -414,12 +414,16 @@
                     </div>
                 ` : '';
                 
+                // 获取作者的最新信息（包括头像）
+                const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                const authorInfo = allUsers.find(u => u.id === this.post.author.id) || this.post.author;
+                
                 document.getElementById('postDetailContent').innerHTML = `
                     <div class="post-item">
                         <div class="post-header">
-                            <img src="${this.post.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${this.post.author.name}" class="post-avatar" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
+                            <img src="${authorInfo.avatar || 'assets/images/avatars/default.jpg'}" alt="${authorInfo.username || authorInfo.name}" class="post-avatar" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                             <div class="post-info">
-                                <div class="post-author" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;">${this.post.author.name}</div>
+                                <div class="post-author" onclick="goToUserProfile('${this.post.author.id}')" style="cursor: pointer;">${authorInfo.username || authorInfo.name}</div>
                                 <div class="post-time">${timeAgo}</div>
                             </div>
                         </div>
@@ -470,12 +474,16 @@
                 const timeAgo = this.getTimeAgo(comment.timestamp);
                 const isLiked = this.currentUser && comment.likedBy && comment.likedBy.includes(this.currentUser.id);
                 
+                // 获取评论者的最新信息（包括头像）
+                const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                const commentAuthorInfo = allUsers.find(u => u.id === comment.author.id) || comment.author;
+                
                 return `
                     <div class="comment-item" data-comment-id="${comment.id}">
-                        <img src="${comment.author.avatar || 'assets/images/avatars/default.jpg'}" alt="${comment.author.name}" class="comment-avatar" onclick="goToUserProfile('${comment.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
+                        <img src="${commentAuthorInfo.avatar || 'assets/images/avatars/default.jpg'}" alt="${commentAuthorInfo.username || commentAuthorInfo.name}" class="comment-avatar" onclick="goToUserProfile('${comment.author.id}')" style="cursor: pointer;" onerror="this.src='assets/images/avatars/default.jpg'">
                         <div class="comment-content">
                             <div class="comment-header">
-                                <span class="comment-author" onclick="goToUserProfile('${comment.author.id}')">${comment.author.name}</span>
+                                <span class="comment-author" onclick="goToUserProfile('${comment.author.id}')">${commentAuthorInfo.username || commentAuthorInfo.name}</span>
                                 <span class="comment-time">${timeAgo}</span>
                             </div>
                             <div class="comment-text">${comment.content}</div>

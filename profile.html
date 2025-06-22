@@ -471,15 +471,61 @@
                 }
                 this.currentUser = JSON.parse(userData);
                 
+                // 确保当前用户在users数组中
+                if (!this.authManager.users.find(u => u.id === this.currentUser.id)) {
+                    this.authManager.users.push(this.currentUser);
+                    this.authManager.saveUsers();
+                }
+                
                 // 检查是否查看其他用户的资料
                 const viewingUserId = sessionStorage.getItem('viewingUserId');
-                if (viewingUserId && viewingUserId !== this.currentUser.id) {
-                    this.viewingUser = this.authManager.users.find(u => u.id === viewingUserId);
+                if (viewingUserId && String(viewingUserId) !== String(this.currentUser.id)) {
+                    // 从users数组中查找用户，如果找不到则从动态作者信息中查找
+                    this.viewingUser = this.authManager.users.find(u => 
+                        String(u.id) === String(viewingUserId) || 
+                        u.id === parseInt(viewingUserId) ||
+                        u.id === viewingUserId
+                    );
+                    
+                    // 如果在users数组中找不到，尝试从posts中找到该用户的信息
+                    if (!this.viewingUser) {
+                        const postsData = localStorage.getItem('posts');
+                        if (postsData) {
+                            const posts = JSON.parse(postsData);
+                            const postByUser = posts.find(post => 
+                                String(post.author.id) === String(viewingUserId) ||
+                                post.author.id === parseInt(viewingUserId) ||
+                                post.author.id === viewingUserId
+                            );
+                            if (postByUser) {
+                                // 从动态信息中构建用户信息
+                                this.viewingUser = {
+                                    id: postByUser.author.id,
+                                    username: postByUser.author.name,
+                                    email: '暂无信息',
+                                    studentId: '暂无信息',
+                                    avatar: postByUser.author.avatar || 'assets/images/avatars/default.jpg',
+                                    bio: '这个人很懒，什么都没有留下...',
+                                    joinDate: Date.now(),
+                                    followers: [],
+                                    following: []
+                                };
+                                
+                                // 将用户信息添加到users数组中
+                                this.authManager.users.push(this.viewingUser);
+                                this.authManager.saveUsers();
+                            }
+                        }
+                    }
+                    
                     if (!this.viewingUser) {
                         this.showNotification('用户不存在', 'error');
-                        window.location.href = 'index.html';
+                        setTimeout(() => {
+                            window.location.href = 'index.html';
+                        }, 1000);
                         return;
                     }
+                    
                     this.isViewingOther = true;
                     this.setupOtherUserView();
                 } else {
@@ -602,11 +648,11 @@
                     this.src = defaultAvatar;
                 };
                 
-                document.getElementById('profileName').textContent = this.viewingUser.username;
-                document.getElementById('profileEmail').textContent = this.viewingUser.email;
-                document.getElementById('profileStudentId').textContent = `学号：${this.viewingUser.studentId}`;
+                document.getElementById('profileName').textContent = this.viewingUser.username || this.viewingUser.name || '用户名';
+                document.getElementById('profileEmail').textContent = this.viewingUser.email || '暂无信息';
+                document.getElementById('profileStudentId').textContent = `学号：${this.viewingUser.studentId || '暂无信息'}`;
                 
-                const joinDate = new Date(this.viewingUser.joinDate).toLocaleDateString();
+                const joinDate = this.viewingUser.joinDate ? new Date(this.viewingUser.joinDate).toLocaleDateString() : '暂无信息';
                 document.getElementById('profileJoinDate').textContent = `加入时间：${joinDate}`;
                 
                 // 更新统计数据 - 计算用户的真实动态数
@@ -614,17 +660,15 @@
                 const userPosts = allPosts.filter(post => post.author.id === this.viewingUser.id);
                 document.getElementById('postsCount').textContent = userPosts.length;
                 
-                // 获取真实的关注和粉丝数据
-                if (window.socialManager) {
-                    const userFollowData = window.socialManager.getUserFollowData(this.viewingUser.id);
-                    document.getElementById('followersCount').textContent = userFollowData.followers.length;
-                    
-                    if (this.isViewingOther) {
-                        // 查看其他用户时，获取其关注数据
-                        document.getElementById('followingCount').textContent = userFollowData.following.length;
+                // 获取真实的关注和粉丝数据（直接从users数组中获取）
+                if (window.authManager) {
+                    const userInUsers = window.authManager.users.find(u => u.id === this.viewingUser.id);
+                    if (userInUsers) {
+                        document.getElementById('followersCount').textContent = (userInUsers.followers || []).length;
+                        document.getElementById('followingCount').textContent = (userInUsers.following || []).length;
                     } else {
-                        // 查看自己时，使用当前用户的关注数据
-                        document.getElementById('followingCount').textContent = window.socialManager.followData.following.length;
+                        document.getElementById('followersCount').textContent = 0;
+                        document.getElementById('followingCount').textContent = 0;
                     }
                 } else {
                     document.getElementById('followersCount').textContent = 0;
@@ -1232,13 +1276,8 @@
             passwordManager.changePassword(event);
         }
 
-        // 初始化
+                // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            // 初始化社交管理器
-            if (typeof SocialManager !== 'undefined') {
-                window.socialManager = new SocialManager();
-            }
-            
             window.profileManager = new ProfileManager();
             updateUserDisplay();
             profileManager.loadUserProfile();
@@ -1247,32 +1286,6 @@
             // 绑定表单提交事件
              document.getElementById('profileForm').addEventListener('submit', profileManager.saveProfile.bind(profileManager));
              document.getElementById('passwordForm').addEventListener('submit', passwordManager.changePassword.bind(passwordManager));
-             
-            // 绑定关注按钮事件
-            document.addEventListener('click', (e) => {
-                if (e.target.closest('.follow-btn')) {
-                    const button = e.target.closest('.follow-btn');
-                    const userId = button.dataset.userId;
-                    if (userId && window.socialManager) {
-                        window.socialManager.toggleFollow(userId);
-                        
-                        // 更新按钮状态
-                        const isFollowing = window.socialManager.isFollowing(userId);
-                        if (isFollowing) {
-                            button.classList.add('following');
-                            button.innerHTML = '<i class="fas fa-user-check"></i> 已关注';
-                        } else {
-                            button.classList.remove('following');
-                            button.innerHTML = '<i class="fas fa-user-plus"></i> 关注';
-                        }
-                        
-                        // 刷新页面数据
-                        if (window.profileManager) {
-                            window.profileManager.loadUserProfile();
-                        }
-                    }
-                }
-            });
         });
     </script>
 </body>

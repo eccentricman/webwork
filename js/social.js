@@ -1,16 +1,10 @@
 // 社交功能模块
 class SocialManager {
     constructor() {
-        this.followData = this.loadFollowData();
         this.messageData = this.loadMessageData();
         this.collectData = this.loadCollectData();
         this.shareData = this.loadShareData();
         this.setupEventListeners();
-    }
-    
-    // 刷新关注数据（当用户切换时调用）
-    refreshFollowData() {
-        this.followData = this.loadFollowData();
     }
 
     // 设置事件监听器
@@ -54,30 +48,16 @@ class SocialManager {
         });
     }
 
-    // 加载关注数据
-    loadFollowData() {
-        const currentUserId = window.app?.currentUser?.id;
-        if (!currentUserId) {
-            return {
-                following: [], // 我关注的人
-                followers: []  // 关注我的人
-            };
-        }
-        
-        const key = `followData_${currentUserId}`;
-        return JSON.parse(localStorage.getItem(key)) || {
-            following: [],
-            followers: []
-        };
+    // 获取当前用户
+    getCurrentUser() {
+        const currentUserData = localStorage.getItem('currentUser');
+        return currentUserData ? JSON.parse(currentUserData) : null;
     }
 
-    // 保存关注数据
-    saveFollowData() {
-        const currentUserId = window.app?.currentUser?.id;
-        if (currentUserId) {
-            const key = `followData_${currentUserId}`;
-            localStorage.setItem(key, JSON.stringify(this.followData));
-        }
+    // 通过ID获取用户
+    getUserById(userId) {
+        if (!window.authManager) return null;
+        return window.authManager.users.find(u => u.id === parseInt(userId));
     }
 
     // 加载消息数据
@@ -112,41 +92,70 @@ class SocialManager {
 
     // 切换关注状态
     toggleFollow(userId) {
-        if (!window.app || !window.app.currentUser) {
+        const currentUser = this.getCurrentUser();
+        if (!currentUser) {
             this.showNotification('请先登录', 'warning');
             return;
         }
 
-        const currentUserId = window.app.currentUser.id;
-        if (currentUserId === parseInt(userId)) {
+        const targetUserId = parseInt(userId);
+        if (currentUser.id === targetUserId) {
             this.showNotification('不能关注自己', 'warning');
             return;
         }
 
-        const isFollowing = this.isFollowing(userId);
-        
+        if (!window.authManager) {
+            this.showNotification('系统错误', 'error');
+            return;
+        }
+
+        // 获取当前用户和目标用户在users数组中的引用
+        const currentUserInUsers = window.authManager.users.find(u => u.id === currentUser.id);
+        const targetUser = window.authManager.users.find(u => u.id === targetUserId);
+
+        if (!currentUserInUsers || !targetUser) {
+            this.showNotification('用户不存在', 'error');
+            return;
+        }
+
+        // 确保followers和following数组存在
+        if (!currentUserInUsers.following) currentUserInUsers.following = [];
+        if (!targetUser.followers) targetUser.followers = [];
+
+        const isFollowing = currentUserInUsers.following.includes(targetUserId);
+
         if (isFollowing) {
-            // 取消关注
-            this.followData.following = this.followData.following.filter(id => id !== parseInt(userId));
-            // 从被关注者的粉丝列表中移除当前用户
-            this.removeFromFollowers(userId, currentUserId);
+            // 取消关注：从我的关注列表中移除，从对方的粉丝列表中移除
+            currentUserInUsers.following = currentUserInUsers.following.filter(id => id !== targetUserId);
+            targetUser.followers = targetUser.followers.filter(id => id !== currentUser.id);
             this.showNotification('已取消关注', 'success');
         } else {
-            // 关注
-            this.followData.following.push(parseInt(userId));
-            // 添加到被关注者的粉丝列表
-            this.addToFollowers(userId, currentUserId);
+            // 关注：添加到我的关注列表，添加到对方的粉丝列表
+            currentUserInUsers.following.push(targetUserId);
+            targetUser.followers.push(currentUser.id);
             this.showNotification('关注成功', 'success');
         }
 
-        this.saveFollowData();
+        // 保存到localStorage
+        window.authManager.saveUsers();
+        
+        // 更新当前用户数据
+        localStorage.setItem('currentUser', JSON.stringify(currentUserInUsers));
+
+        // 更新界面
         this.updateFollowButtons();
         this.updateFollowCounts();
     }
 
     // 检查是否已关注
     isFollowing(userId) {
-        return this.followData.following.includes(parseInt(userId));
+        const currentUser = this.getCurrentUser();
+        if (!currentUser || !window.authManager) return false;
+
+        const currentUserInUsers = window.authManager.users.find(u => u.id === currentUser.id);
+        if (!currentUserInUsers || !currentUserInUsers.following) return false;
+
+        return currentUserInUsers.following.includes(parseInt(userId));
     }
 
     // 更新关注按钮状态
@@ -163,53 +172,36 @@ class SocialManager {
         });
     }
 
-    // 添加到粉丝列表
-    addToFollowers(userId, followerId) {
-        const userFollowData = this.getUserFollowData(userId);
-        if (!userFollowData.followers.includes(parseInt(followerId))) {
-            userFollowData.followers.push(parseInt(followerId));
-            this.saveUserFollowData(userId, userFollowData);
-        }
-    }
-
-    // 从粉丝列表移除
-    removeFromFollowers(userId, followerId) {
-        const userFollowData = this.getUserFollowData(userId);
-        userFollowData.followers = userFollowData.followers.filter(id => id !== parseInt(followerId));
-        this.saveUserFollowData(userId, userFollowData);
-    }
-
-    // 获取用户的关注数据
+    // 获取用户的关注数据（从users数组中获取）
     getUserFollowData(userId) {
-        const key = `followData_${userId}`;
-        return JSON.parse(localStorage.getItem(key)) || {
-            following: [],
-            followers: []
-        };
-    }
+        if (!window.authManager) return { following: [], followers: [] };
+        
+        const user = window.authManager.users.find(u => u.id === parseInt(userId));
+        if (!user) return { following: [], followers: [] };
 
-    // 保存用户的关注数据
-    saveUserFollowData(userId, data) {
-        const key = `followData_${userId}`;
-        localStorage.setItem(key, JSON.stringify(data));
+        return {
+            following: user.following || [],
+            followers: user.followers || []
+        };
     }
 
     // 更新关注数量
     updateFollowCounts() {
+        const currentUser = this.getCurrentUser();
+        if (!currentUser) return;
+
+        const userFollowData = this.getUserFollowData(currentUser.id);
+
+        // 更新首页的关注数量
         const followingCount = document.querySelector('.following-count');
         const followersCount = document.querySelector('.followers-count');
         
         if (followingCount) {
-            followingCount.textContent = this.followData.following.length;
+            followingCount.textContent = userFollowData.following.length;
         }
         
         if (followersCount) {
-            // 获取当前用户的粉丝数量
-            const currentUserId = window.app?.currentUser?.id;
-            if (currentUserId) {
-                const userFollowData = this.getUserFollowData(currentUserId);
-                followersCount.textContent = userFollowData.followers.length;
-            }
+            followersCount.textContent = userFollowData.followers.length;
         }
 
         // 更新个人主页的统计数据
@@ -217,33 +209,31 @@ class SocialManager {
         const profileFollowersCount = document.getElementById('followersCount');
         
         if (profileFollowingCount) {
-            profileFollowingCount.textContent = this.followData.following.length;
+            profileFollowingCount.textContent = userFollowData.following.length;
         }
         
         if (profileFollowersCount) {
-            const currentUserId = window.app?.currentUser?.id;
-            if (currentUserId) {
-                const userFollowData = this.getUserFollowData(currentUserId);
-                profileFollowersCount.textContent = userFollowData.followers.length;
-            }
+            profileFollowersCount.textContent = userFollowData.followers.length;
         }
     }
 
     // 获取关注列表
     getFollowingList() {
-        if (!window.authManager) return [];
-        
-        return this.followData.following.map(userId => {
+        const currentUser = this.getCurrentUser();
+        if (!currentUser || !window.authManager) return [];
+
+        const userFollowData = this.getUserFollowData(currentUser.id);
+        return userFollowData.following.map(userId => {
             return window.authManager.users.find(user => user.id === userId);
         }).filter(user => user);
     }
 
     // 获取粉丝列表
     getFollowersList() {
-        if (!window.authManager || !window.app?.currentUser) return [];
+        const currentUser = this.getCurrentUser();
+        if (!currentUser || !window.authManager) return [];
         
-        const currentUserId = window.app.currentUser.id;
-        const userFollowData = this.getUserFollowData(currentUserId);
+        const userFollowData = this.getUserFollowData(currentUser.id);
         
         return userFollowData.followers.map(userId => {
             const user = window.authManager.users.find(u => u.id === userId);
@@ -259,7 +249,8 @@ class SocialManager {
 
     // 打开私信模态框
     openMessageModal(userId) {
-        if (!window.app || !window.app.currentUser) {
+        const currentUserData = localStorage.getItem('currentUser');
+        if (!currentUserData) {
             this.showNotification('请先登录', 'warning');
             return;
         }
@@ -734,13 +725,13 @@ class SocialManager {
 
     // 获取推荐用户
     getRecommendedUsers(limit = 5) {
-        if (!window.authManager || !window.app || !window.app.currentUser) return [];
+        const currentUser = this.getCurrentUser();
+        if (!currentUser || !window.authManager) return [];
         
-        const currentUserId = window.app.currentUser.id;
-        const followingIds = this.followData.following;
+        const userFollowData = this.getUserFollowData(currentUser.id);
         
         return window.authManager.users
-            .filter(user => user.id !== currentUserId && !followingIds.includes(user.id))
+            .filter(user => user.id !== currentUser.id && !userFollowData.following.includes(user.id))
             .slice(0, limit)
             .map(user => ({
                 ...user,
