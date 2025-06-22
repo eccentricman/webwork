@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人主页 - 校园生活</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 100px;
+        }
+
+        .profile-header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 30px;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            border: 4px solid #667eea;
+            object-fit: cover;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .profile-info {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .profile-tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .readonly-field {
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            min-height: 20px;
+            color: #495057;
+        }
+
+        .readonly-field:empty::before {
+            content: "暂无信息";
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .posts-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .post-item {
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+
+        .post-content {
+            margin-bottom: 10px;
+        }
+
+        .post-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #fecaca;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #16a34a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #bbf7d0;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .back-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+
+        .avatar-upload {
+            position: relative;
+            display: inline-block;
+        }
+
+        .avatar-upload input[type="file"] {
+            display: none;
+        }
+
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="back-btn" onclick="window.location.href='index.html'">
+        <i class="fas fa-arrow-left"></i>
+    </div>
+
+    <div class="profile-container">
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="profile-header">
+            <div class="avatar-upload">
+                <img src="" alt="头像" class="profile-avatar" id="profileAvatar">
+                <input type="file" id="avatarInput" accept="image/*">
+                <button class="avatar-upload-btn" onclick="document.getElementById('avatarInput').click()">
+                    <i class="fas fa-camera"></i>
+                </button>
+            </div>
+            <h1 class="profile-name" id="profileName">用户名</h1>
+            <div class="profile-info">
+                <p id="profileEmail">邮箱</p>
+                <p id="profileStudentId">学号</p>
+                <p id="profileJoinDate">加入时间</p>
+            </div>
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="postsCount">0</div>
+                    <div class="stat-label">动态</div>
+                </div>
+                <div class="stat-item" style="cursor: pointer;" onclick="profileManager.showFollowersList()">
+                            <div class="stat-number" id="followersCount">0</div>
+                            <div class="stat-label">粉丝</div>
+                        </div>
+                        <div class="stat-item" style="cursor: pointer;" onclick="profileManager.showFollowingList()">
+                            <div class="stat-number" id="followingCount">0</div>
+                            <div class="stat-label">关注</div>
+                        </div>
+            </div>
+        </div>
+
+        <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="info">个人信息</button>
+            <button class="tab-btn" data-tab="posts">我的动态</button>
+            <button class="tab-btn" data-tab="settings">账户设置</button>
+        </div>
+
+        <!-- 个人信息标签页 -->
+        <div class="tab-content active" id="infoTab">
+            <!-- 只读模式 -->
+            <div id="profileView">
+                <div class="form-group">
+                    <label>昵称</label>
+                    <div class="readonly-field" id="viewNickname"></div>
+                </div>
+                <div class="form-group">
+                    <label>个人简介</label>
+                    <div class="readonly-field" id="viewBio"></div>
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <div class="readonly-field" id="viewEmail"></div>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-primary" onclick="profileManager.enableEdit()">修改资料</button>
+                </div>
+            </div>
+            
+            <!-- 编辑模式 -->
+            <div id="profileEdit" style="display: none;">
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label for="editNickname">昵称</label>
+                        <input type="text" id="editNickname" placeholder="请输入昵称">
+                    </div>
+                    <div class="form-group">
+                        <label for="editBio">个人简介</label>
+                        <textarea id="editBio" placeholder="介绍一下自己吧..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmail">邮箱</label>
+                        <input type="email" id="editEmail" placeholder="请输入邮箱">
+                    </div>
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-primary">保存修改</button>
+                        <button type="button" class="btn btn-secondary" onclick="profileManager.cancelEdit()">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 我的动态标签页 -->
+        <div class="tab-content" id="postsTab">
+            <div class="posts-grid" id="userPosts">
+                <!-- 用户动态将在这里显示 -->
+            </div>
+        </div>
+
+        <!-- 账户设置标签页 -->
+        <div class="tab-content" id="settingsTab">
+            <!-- 密码只读模式 -->
+            <div id="passwordView">
+                <div class="form-group">
+                    <label>当前密码状态</label>
+                    <div class="readonly-field">密码已设置，点击下方按钮可修改密码</div>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-primary" onclick="passwordManager.enableEdit()">修改密码</button>
+                </div>
+            </div>
+            
+            <!-- 密码编辑模式 -->
+            <div id="passwordEdit" style="display: none;">
+                <form id="passwordForm">
+                    <div class="form-group">
+                        <label for="newPassword">新密码</label>
+                        <div class="password-input">
+                            <input type="password" id="newPassword" placeholder="请输入新密码">
+                            <button type="button" class="password-toggle" onclick="togglePassword('newPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmNewPassword">确认新密码</label>
+                        <div class="password-input">
+                            <input type="password" id="confirmNewPassword" placeholder="请再次输入新密码">
+                            <button type="button" class="password-toggle" onclick="togglePassword('confirmNewPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-primary">修改密码</button>
+                        <button type="button" class="btn btn-secondary" onclick="passwordManager.cancelEdit()">取消</button>
+                    </div>
+                </form>
+            </div>
+            
+            <hr style="margin: 40px 0; border: none; border-top: 1px solid #eee;">
+            
+            <div class="action-buttons">
+                <button type="button" class="btn btn-danger" onclick="logout()">退出登录</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/social.js"></script>
+    <script>
+        class ProfileManager {
+            constructor() {
+                this.currentUser = null;
+                this.authManager = new AuthManager();
+                this.init();
+            }
+
+            init() {
+                this.loadCurrentUser();
+                this.setupEventListeners();
+                this.loadUserProfile();
+            }
+
+            loadCurrentUser() {
+                const userData = localStorage.getItem('currentUser');
+                if (!userData) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                this.currentUser = JSON.parse(userData);
+                
+                // 检查是否查看其他用户的资料
+                const viewingUserId = sessionStorage.getItem('viewingUserId');
+                if (viewingUserId && viewingUserId !== this.currentUser.id) {
+                    this.viewingUser = this.authManager.users.find(u => u.id === viewingUserId);
+                    if (!this.viewingUser) {
+                        this.showNotification('用户不存在', 'error');
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    this.isViewingOther = true;
+                    // 隐藏设置标签
+                    const settingsTab = document.querySelector('[data-tab="settings"]');
+                    if (settingsTab) {
+                        settingsTab.style.display = 'none';
+                    }
+                    // 隐藏修改资料按钮
+                    const editBtn = document.querySelector('.btn-primary');
+                    if (editBtn && editBtn.textContent.includes('修改资料')) {
+                        editBtn.style.display = 'none';
+                    }
+                } else {
+                    this.isViewingOther = false;
+                    this.viewingUser = this.currentUser;
+                    // 清除sessionStorage
+                    sessionStorage.removeItem('viewingUserId');
+                }
+            }
+
+            setupEventListeners() {
+                // 标签页切换
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tab = btn.dataset.tab;
+                        this.switchTab(tab);
+                    });
+                });
+
+                // 个人信息表单提交
+                document.getElementById('profileForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.updateProfile();
+                });
+
+                // 密码修改表单提交
+                document.getElementById('passwordForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.changePassword();
+                });
+
+                // 头像上传
+                document.getElementById('avatarInput').addEventListener('change', (e) => {
+                    this.handleAvatarUpload(e);
+                });
+            }
+
+            switchTab(tab) {
+                // 更新标签按钮状态
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tab);
+                });
+
+                // 更新内容显示
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tab + 'Tab').classList.add('active');
+
+                // 加载对应内容
+                if (tab === 'posts') {
+                    this.loadUserPosts();
+                }
+            }
+
+            loadUserProfile() {
+                if (!this.viewingUser) return;
+
+                // 更新头像和基本信息
+                document.getElementById('profileAvatar').src = this.viewingUser.avatar || `https://via.placeholder.com/120x120/667eea/ffffff?text=${this.viewingUser.username.charAt(0)}`;
+                document.getElementById('profileName').textContent = this.viewingUser.username;
+                document.getElementById('profileEmail').textContent = this.viewingUser.email;
+                document.getElementById('profileStudentId').textContent = `学号：${this.viewingUser.studentId}`;
+                
+                const joinDate = new Date(this.viewingUser.joinDate).toLocaleDateString();
+                document.getElementById('profileJoinDate').textContent = `加入时间：${joinDate}`;
+                
+                // 更新统计数据
+                document.getElementById('postsCount').textContent = this.viewingUser.posts?.length || 0;
+                
+                // 获取真实的关注和粉丝数据
+                if (window.socialManager) {
+                    const userFollowData = window.socialManager.getUserFollowData(this.viewingUser.id);
+                    document.getElementById('followersCount').textContent = userFollowData.followers.length;
+                    
+                    if (this.isViewingOther) {
+                        // 查看其他用户时，获取其关注数据
+                        document.getElementById('followingCount').textContent = userFollowData.following.length;
+                    } else {
+                        // 查看自己时，使用当前用户的关注数据
+                        document.getElementById('followingCount').textContent = window.socialManager.followData.following.length;
+                    }
+                } else {
+                    document.getElementById('followersCount').textContent = 0;
+                    document.getElementById('followingCount').textContent = 0;
+                }
+                
+                // 只有查看自己的资料时才填充编辑表单
+                if (!this.isViewingOther) {
+                    document.getElementById('editNickname').value = this.viewingUser.username;
+                    document.getElementById('editBio').value = this.viewingUser.bio || '';
+                    document.getElementById('editEmail').value = this.viewingUser.email;
+                }
+                
+                // 如果查看其他用户，添加关注按钮
+                if (this.isViewingOther) {
+                    this.addFollowButton();
+                }
+            }
+
+            updateProfile() {
+                const nickname = document.getElementById('editNickname').value.trim();
+                const bio = document.getElementById('editBio').value.trim();
+                const email = document.getElementById('editEmail').value.trim();
+
+                if (!nickname || !email) {
+                    this.showError('昵称和邮箱不能为空');
+                    return;
+                }
+
+                if (!this.isValidEmail(email)) {
+                    this.showError('请输入有效的邮箱地址');
+                    return;
+                }
+
+                // 检查邮箱是否被其他用户使用
+                const existingUser = this.authManager.users.find(u => u.email === email && u.id !== this.currentUser.id);
+                if (existingUser) {
+                    this.showError('该邮箱已被其他用户使用');
+                    return;
+                }
+
+                // 更新用户信息
+                this.currentUser.username = nickname;
+                this.currentUser.bio = bio;
+                this.currentUser.email = email;
+
+                // 更新存储
+                this.updateUserInStorage();
+                this.loadUserProfile();
+                this.showSuccess('个人信息更新成功');
+            }
+
+            changePassword() {
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+                if (!newPassword || !confirmPassword) {
+                    this.showError('请填写完整的密码信息');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    this.showError('两次输入的密码不一致');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    this.showError('密码长度至少6位');
+                    return;
+                }
+
+                // 更新密码
+                this.currentUser.password = newPassword;
+                this.updateUserInStorage();
+                
+                // 清空表单
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+                
+                this.showSuccess('密码修改成功');
+            }
+
+            handleAvatarUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                if (!file.type.startsWith('image/')) {
+                    this.showError('请选择图片文件');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const avatarUrl = e.target.result;
+                    this.currentUser.avatar = avatarUrl;
+                    this.updateUserInStorage();
+                    document.getElementById('profileAvatar').src = avatarUrl;
+                    this.showSuccess('头像更新成功');
+                };
+                reader.readAsDataURL(file);
+            }
+
+            loadUserPosts() {
+                const postsContainer = document.getElementById('userPosts');
+                const allPosts = JSON.parse(localStorage.getItem('posts') || '[]');
+                const userPosts = allPosts.filter(post => post.author.id === this.viewingUser.id);
+
+                if (userPosts.length === 0) {
+                    postsContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">还没有发布任何动态</p>';
+                    return;
+                }
+
+                postsContainer.innerHTML = userPosts.map(post => `
+                    <div class="post-item">
+                        <div class="post-content">${post.content}</div>
+                        <div class="post-meta">
+                            <span>${this.getTimeAgo(post.timestamp)}</span>
+                            <span style="margin-left: 20px;">❤️ ${post.likes?.length || 0}</span>
+                            <span style="margin-left: 10px;">💬 ${post.comments?.length || 0}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateUserInStorage() {
+                // 更新当前用户数据
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                
+                // 更新用户列表中的数据
+                const userIndex = this.authManager.users.findIndex(u => u.id === this.currentUser.id);
+                if (userIndex !== -1) {
+                    this.authManager.users[userIndex] = { ...this.currentUser };
+                    this.authManager.saveUsers();
+                }
+            }
+
+            isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
+            getTimeAgo(timestamp) {
+                const now = Date.now();
+                const diff = now - timestamp;
+                
+                const minute = 60 * 1000;
+                const hour = 60 * minute;
+                const day = 24 * hour;
+                
+                if (diff < minute) {
+                    return '刚刚';
+                } else if (diff < hour) {
+                    return Math.floor(diff / minute) + '分钟前';
+                } else if (diff < day) {
+                    return Math.floor(diff / hour) + '小时前';
+                } else {
+                    return Math.floor(diff / day) + '天前';
+                }
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                const successDiv = document.getElementById('successMessage');
+                
+                successDiv.style.display = 'none';
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            showSuccess(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                const successDiv = document.getElementById('successMessage');
+                
+                errorDiv.style.display = 'none';
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 5000);
+            }
+
+            showNotification(message, type = 'info') {
+                // 创建通知元素
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 15px 20px;
+                    border-radius: 5px;
+                    color: white;
+                    z-index: 10000;
+                    font-weight: 500;
+                `;
+                
+                // 根据类型设置背景色
+                switch(type) {
+                    case 'success':
+                        notification.style.backgroundColor = '#4CAF50';
+                        break;
+                    case 'error':
+                        notification.style.backgroundColor = '#f44336';
+                        break;
+                    case 'warning':
+                        notification.style.backgroundColor = '#ff9800';
+                        break;
+                    default:
+                        notification.style.backgroundColor = '#2196F3';
+                }
+                
+                document.body.appendChild(notification);
+                
+                // 3秒后自动移除
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 3000);
+            }
+
+            addFollowButton() {
+                const profileHeader = document.querySelector('.profile-header');
+                const existingBtn = document.getElementById('followBtn');
+                
+                // 如果按钮已存在，先移除
+                if (existingBtn) {
+                    existingBtn.remove();
+                }
+                
+                // 检查是否已关注
+                const isFollowing = this.currentUser.following && this.currentUser.following.includes(this.viewingUser.id);
+                
+                const followBtn = document.createElement('button');
+                followBtn.id = 'followBtn';
+                followBtn.className = `btn ${isFollowing ? 'btn-secondary' : 'btn-primary'}`;
+                followBtn.textContent = isFollowing ? '已关注' : '关注';
+                followBtn.style.marginTop = '20px';
+                
+                followBtn.addEventListener('click', () => {
+                    this.toggleFollow();
+                });
+                
+                profileHeader.appendChild(followBtn);
+            }
+
+            // 显示粉丝列表
+            showFollowersList() {
+                if (!window.socialManager) {
+                    this.showError('社交功能未加载');
+                    return;
+                }
+
+                const userId = this.isViewingOther ? this.viewingUser.id : this.currentUser.id;
+                const userFollowData = window.socialManager.getUserFollowData(userId);
+                const followers = userFollowData.followers.map(id => {
+                    return window.authManager.users.find(u => u.id === id);
+                }).filter(user => user);
+
+                this.showUserListModal('粉丝列表', followers);
+            }
+
+            // 显示关注列表
+            showFollowingList() {
+                if (!window.socialManager) {
+                    this.showError('社交功能未加载');
+                    return;
+                }
+
+                let following;
+                if (this.isViewingOther) {
+                    const userFollowData = window.socialManager.getUserFollowData(this.viewingUser.id);
+                    following = userFollowData.following.map(id => {
+                        return window.authManager.users.find(u => u.id === id);
+                    }).filter(user => user);
+                } else {
+                    following = window.socialManager.getFollowingList();
+                }
+
+                this.showUserListModal('关注列表', following);
+            }
+
+            // 显示用户列表模态框
+            showUserListModal(title, users) {
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>${title}</h3>
+                            <button class="close-btn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            ${users.length === 0 ? 
+                                '<p style="text-align: center; color: #666; padding: 20px;">暂无数据</p>' :
+                                users.map(user => `
+                                    <div class="user-item" style="display: flex; align-items: center; padding: 10px; border-bottom: 1px solid #eee;">
+                                        <img src="${user.avatar || 'https://via.placeholder.com/40x40/667eea/ffffff?text=' + user.username.charAt(0)}" 
+                                             alt="${user.username}" 
+                                             style="width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; cursor: pointer;"
+                                             onclick="window.location.href='profile.html'; sessionStorage.setItem('viewingUserId', '${user.id}');">
+                                        <div style="flex: 1;">
+                                            <div style="font-weight: 600; cursor: pointer;" 
+                                                 onclick="window.location.href='profile.html'; sessionStorage.setItem('viewingUserId', '${user.id}');">
+                                                ${user.username}
+                                            </div>
+                                            <div style="color: #666; font-size: 0.9rem;">${user.email}</div>
+                                        </div>
+                                        ${!this.isViewingOther && user.id !== this.currentUser.id ? 
+                                            `<button class="btn btn-sm follow-btn" data-user-id="${user.id}" 
+                                                     style="padding: 5px 15px; font-size: 0.8rem;">
+                                                ${window.socialManager.isFollowing(user.id) ? '已关注' : '关注'}
+                                             </button>` : ''}
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+                modal.style.display = 'flex';
+
+                // 关闭事件
+                modal.querySelector('.close-btn').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        document.body.removeChild(modal);
+                    }
+                });
+            }
+
+            toggleFollow() {
+                if (!this.currentUser.following) {
+                    this.currentUser.following = [];
+                }
+                
+                const isFollowing = this.currentUser.following.includes(this.viewingUser.id);
+                const followBtn = document.getElementById('followBtn');
+                
+                if (isFollowing) {
+                    // 取消关注
+                    this.currentUser.following = this.currentUser.following.filter(id => id !== this.viewingUser.id);
+                    followBtn.className = 'btn btn-primary';
+                    followBtn.textContent = '关注';
+                    this.showNotification('已取消关注', 'success');
+                } else {
+                    // 关注
+                    this.currentUser.following.push(this.viewingUser.id);
+                    followBtn.className = 'btn btn-secondary';
+                    followBtn.textContent = '已关注';
+                    this.showNotification('关注成功', 'success');
+                }
+                
+                // 保存用户数据
+                this.updateUserInStorage();
+            }
+        }
+
+        // 全局函数
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        function logout() {
+            if (confirm('确定要退出登录吗？')) {
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('rememberUser');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 个人资料管理
+        const profileManager = {
+            loadUserProfile() {
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                if (currentUser) {
+                    // 更新只读视图
+                    document.getElementById('viewNickname').textContent = currentUser.nickname || '';
+                    document.getElementById('viewBio').textContent = currentUser.bio || '';
+                    document.getElementById('viewEmail').textContent = currentUser.email || '';
+                    
+                    // 更新编辑表单
+                    document.getElementById('editNickname').value = currentUser.nickname || '';
+                    document.getElementById('editBio').value = currentUser.bio || '';
+                    document.getElementById('editEmail').value = currentUser.email || '';
+                }
+            },
+            
+            enableEdit() {
+                document.getElementById('profileView').style.display = 'none';
+                document.getElementById('profileEdit').style.display = 'block';
+            },
+            
+            cancelEdit() {
+                document.getElementById('profileEdit').style.display = 'none';
+                document.getElementById('profileView').style.display = 'block';
+                // 重新加载数据，取消未保存的更改
+                this.loadUserProfile();
+            },
+            
+            saveProfile(event) {
+                event.preventDefault();
+                
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                if (!currentUser) {
+                    alert('用户未登录');
+                    return;
+                }
+
+                const nickname = document.getElementById('editNickname').value;
+                const bio = document.getElementById('editBio').value;
+                const email = document.getElementById('editEmail').value;
+
+                // 更新用户信息
+                currentUser.nickname = nickname;
+                currentUser.bio = bio;
+                currentUser.email = email;
+
+                // 保存到localStorage
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+                // 更新显示
+                this.loadUserProfile();
+                updateUserDisplay();
+                
+                // 切换回只读模式
+                this.cancelEdit();
+                
+                // 显示成功消息
+                this.showSuccessMessage('个人信息保存成功！');
+            },
+            
+            showSuccessMessage(message) {
+                // 创建成功提示
+                const successDiv = document.createElement('div');
+                successDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background-color: #28a745;
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 5px;
+                    z-index: 1000;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                `;
+                successDiv.textContent = message;
+                document.body.appendChild(successDiv);
+                
+                // 3秒后自动消失
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 3000);
+            }
+        };
+        
+        // 兼容旧函数名
+        function loadUserProfile() {
+            if (window.profileManager) {
+                window.profileManager.loadUserProfile();
+            } else {
+                profileManager.loadUserProfile();
+            }
+        }
+        
+        function saveProfile(event) {
+            profileManager.saveProfile(event);
+        }
+
+        // 密码管理
+        const passwordManager = {
+            enableEdit() {
+                document.getElementById('passwordView').style.display = 'none';
+                document.getElementById('passwordEdit').style.display = 'block';
+            },
+            
+            cancelEdit() {
+                document.getElementById('passwordEdit').style.display = 'none';
+                document.getElementById('passwordView').style.display = 'block';
+                // 清空密码输入框
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+            },
+            
+            changePassword(event) {
+                event.preventDefault();
+                
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmNewPassword').value;
+
+                if (!newPassword || !confirmPassword) {
+                    alert('请填写完整的密码信息');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    alert('两次输入的密码不一致');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    alert('密码长度至少6位');
+                    return;
+                }
+
+                // 更新用户密码
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                if (currentUser) {
+                    currentUser.password = newPassword;
+                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                }
+
+                // 切换回只读模式
+                this.cancelEdit();
+                
+                // 显示成功消息
+                profileManager.showSuccessMessage('密码修改成功！');
+            }
+        };
+        
+        // 兼容旧函数名
+        function changePassword(event) {
+            passwordManager.changePassword(event);
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 初始化社交管理器
+            if (typeof SocialManager !== 'undefined') {
+                window.socialManager = new SocialManager();
+            }
+            
+            window.profileManager = new ProfileManager();
+            updateUserDisplay();
+            profileManager.loadUserProfile();
+            loadUserPosts();
+            
+            // 绑定表单提交事件
+             document.getElementById('profileForm').addEventListener('submit', profileManager.saveProfile.bind(profileManager));
+             document.getElementById('passwordForm').addEventListener('submit', passwordManager.changePassword.bind(passwordManager));
+        });
+    </script>
+</body>
+</html>

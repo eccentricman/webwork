@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录注册 - 校园生活社交平台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 900px;
+            min-height: 600px;
+            display: flex;
+            position: relative;
+        }
+
+        .auth-left {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .auth-left h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .auth-left p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .auth-right {
+            flex: 1;
+            padding: 60px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .auth-form {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .form-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .password-input {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-option input[type="checkbox"] {
+            width: 18px !important;
+            height: 18px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            cursor: pointer;
+            accent-color: #667eea;
+            appearance: auto;
+            -webkit-appearance: checkbox;
+            -moz-appearance: checkbox;
+            display: inline-block !important;
+            vertical-align: middle;
+            border: 2px solid #ccc;
+            border-radius: 3px;
+            background: white;
+        }
+
+        .checkbox-option label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        .checkbox-option a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .checkbox-option a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .form-footer {
+            text-align: center;
+            color: #666;
+        }
+
+        .form-footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .form-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #fecaca;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .success-message {
+            background: #dcfce7;
+            color: #16a34a;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            border: 1px solid #bbf7d0;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .password-strength {
+            margin-top: 5px;
+            font-size: 0.9rem;
+        }
+
+        .password-strength.weak {
+            color: #e74c3c;
+        }
+
+        .password-strength.medium {
+            color: #f39c12;
+        }
+
+        .password-strength.strong {
+            color: #27ae60;
+        }
+
+        .back-to-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-to-home:hover {
+            transform: translateX(-5px);
+        }
+
+        @media (max-width: 768px) {
+            .auth-container {
+                flex-direction: column;
+                margin: 20px;
+                min-height: auto;
+            }
+
+            .auth-left {
+                padding: 30px 20px;
+            }
+
+            .auth-left h1 {
+                font-size: 2rem;
+            }
+
+            .auth-right {
+                padding: 40px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <a href="index.html" class="back-to-home">
+            <i class="fas fa-arrow-left"></i>
+            返回首页
+        </a>
+        
+        <div class="auth-left">
+            <h1>校园生活</h1>
+            <p>连接同学，分享生活，记录美好的校园时光。加入我们，开启精彩的大学生活！</p>
+        </div>
+        
+        <div class="auth-right">
+            <div class="auth-form">
+                <div class="form-tabs">
+                    <button class="tab-btn active" data-tab="login">登录</button>
+                    <button class="tab-btn" data-tab="register">注册</button>
+                </div>
+                
+                <div class="error-message" id="errorMessage"></div>
+                <div class="success-message" id="successMessage"></div>
+                
+                <!-- 登录表单 -->
+                <div class="form-content active" id="loginForm">
+                    <form id="loginFormElement">
+                        <div class="form-group">
+                            <label for="loginStudentId">学号</label>
+                            <input type="text" id="loginStudentId" required placeholder="请输入学号">
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">密码</label>
+                            <div class="password-input">
+                                <input type="password" id="loginPassword" required placeholder="请输入密码">
+                                <button type="button" class="password-toggle" data-target="loginPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="checkbox-option">
+                            <input type="checkbox" id="rememberMe">
+                            <label for="rememberMe">记住我</label>
+                        </div>
+                        <button type="submit" class="btn-primary">登录</button>
+                    </form>
+                    <div class="form-footer">
+                        <p>还没有账号？<a href="#" class="switch-tab" data-tab="register">立即注册</a></p>
+                    </div>
+                </div>
+                
+                <!-- 注册表单 -->
+                <div class="form-content" id="registerForm">
+                    <form id="registerFormElement">
+                        <div class="form-group">
+                            <label for="registerStudentId">学号</label>
+                            <input type="text" id="registerStudentId" required placeholder="请输入学号">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerNickname">昵称</label>
+                            <input type="text" id="registerNickname" required placeholder="请输入昵称">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerEmail">邮箱</label>
+                            <input type="email" id="registerEmail" required placeholder="请输入邮箱">
+                        </div>
+                        <div class="form-group">
+                            <label for="registerPassword">密码</label>
+                            <div class="password-input">
+                                <input type="password" id="registerPassword" required placeholder="请输入密码">
+                                <button type="button" class="password-toggle" data-target="registerPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength" id="passwordStrength"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">确认密码</label>
+                            <input type="password" id="confirmPassword" required placeholder="请再次输入密码">
+                            <div class="password-strength" id="confirmPasswordHint"></div>
+                        </div>
+                        <div class="checkbox-option">
+                            <input type="checkbox" id="isAdmin">
+                            <label for="isAdmin">注册为管理员账号</label>
+                        </div>
+                        <div class="checkbox-option">
+                            <input type="checkbox" id="agreeTerms" required>
+                            <label for="agreeTerms">我同意<a href="#">用户协议</a>和<a href="#">隐私政策</a></label>
+                        </div>
+                        <button type="submit" class="btn-primary">注册</button>
+                    </form>
+                    <div class="form-footer">
+                        <p>已有账号？<a href="#" class="switch-tab" data-tab="login">立即登录</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知提示 -->
+    <div class="notification" id="notification">
+        <div class="notification-content">
+            <i class="notification-icon"></i>
+            <span class="notification-message"></span>
+        </div>
+    </div>
+    
+    <script src="js/auth.js"></script>
+    <script>
+        // 独立登录页面的JavaScript逻辑
+        class LoginPageAuth {
+            constructor() {
+                this.authManager = new AuthManager();
+                this.init();
+            }
+            
+            init() {
+                // 检查是否已经登录
+                this.checkLoginStatus();
+                this.setupTabSwitching();
+                this.setupPasswordToggle();
+                this.setupFormSubmission();
+            }
+            
+            checkLoginStatus() {
+                const currentUser = localStorage.getItem('currentUser');
+                if (currentUser) {
+                    // 已经登录，重定向到个人主页
+                    window.location.href = 'profile.html';
+                    return;
+                }
+            }
+            
+            setupTabSwitching() {
+                // 标签切换
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tab = btn.dataset.tab;
+                        this.switchTab(tab);
+                    });
+                });
+                
+                // 底部链接切换
+                document.querySelectorAll('.switch-tab').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const tab = link.dataset.tab;
+                        this.switchTab(tab);
+                    });
+                });
+            }
+            
+            switchTab(tab) {
+                // 更新标签按钮状态
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tab === tab);
+                });
+                
+                // 更新表单显示
+                document.querySelectorAll('.form-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // 显示对应的表单
+                const targetForm = document.getElementById(tab + 'Form');
+                if (targetForm) {
+                    targetForm.classList.add('active');
+                }
+                
+                // 清除错误信息
+                this.clearMessages();
+            }
+            
+            setupPasswordToggle() {
+                document.querySelectorAll('.password-toggle').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const targetId = btn.dataset.target;
+                        const input = document.getElementById(targetId);
+                        const icon = btn.querySelector('i');
+                        
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            icon.className = 'fas fa-eye-slash';
+                        } else {
+                            input.type = 'password';
+                            icon.className = 'fas fa-eye';
+                        }
+                    });
+                });
+            }
+            
+            setupFormSubmission() {
+                // 登录表单
+                document.getElementById('loginFormElement').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleLogin();
+                });
+                
+                // 注册表单
+                document.getElementById('registerFormElement').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleRegister();
+                });
+                
+                // 密码强度检测
+                const registerPassword = document.getElementById('registerPassword');
+                if (registerPassword) {
+                    registerPassword.addEventListener('input', (e) => {
+                        this.checkPasswordStrength(e.target.value);
+                    });
+                }
+                
+                // 密码确认检测
+                const confirmPassword = document.getElementById('confirmPassword');
+                if (confirmPassword) {
+                    confirmPassword.addEventListener('input', (e) => {
+                        this.validatePasswordConfirm(e.target.value);
+                    });
+                }
+            }
+            
+            handleLogin() {
+                const studentId = document.getElementById('loginStudentId').value.trim();
+                const password = document.getElementById('loginPassword').value;
+                const rememberMe = document.getElementById('rememberMe').checked;
+                
+                if (!studentId || !password) {
+                    this.showError('请填写完整的登录信息');
+                    return;
+                }
+                
+                // 使用认证管理器的用户数据
+                const user = this.authManager.users.find(u => u.studentId === studentId || u.email === studentId);
+                if (!user) {
+                    this.showError('用户不存在');
+                    return;
+                }
+                
+                if (user.password !== password) {
+                    this.showError('密码错误');
+                    return;
+                }
+                
+                // 登录成功 - 设置当前用户数据
+                const currentUserData = {
+                    id: user.id,
+                    studentId: user.studentId,
+                    username: user.username,
+                    email: user.email,
+                    avatar: user.avatar || `https://via.placeholder.com/50x50/667eea/ffffff?text=${user.username.charAt(0)}`,
+                    bio: user.bio || '',
+                    joinDate: user.joinDate || new Date().toISOString(),
+                    followers: user.followers || [],
+                    following: user.following || [],
+                    posts: user.posts || []
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(currentUserData));
+                
+                if (rememberMe) {
+                    localStorage.setItem('rememberUser', JSON.stringify({
+                        studentId: studentId,
+                        timestamp: Date.now()
+                    }));
+                }
+                
+                this.showSuccess('登录成功！正在跳转...');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            }
+            
+            handleRegister() {
+                const studentId = document.getElementById('registerStudentId').value.trim();
+                const username = document.getElementById('registerNickname').value.trim();
+                const email = document.getElementById('registerEmail').value.trim();
+                const password = document.getElementById('registerPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const agreeTerms = document.getElementById('agreeTerms').checked;
+                const isAdmin = document.getElementById('isAdmin').checked;
+                
+                if (!studentId || !username || !email || !password || !confirmPassword) {
+                    this.showError('请填写完整的注册信息');
+                    return;
+                }
+                
+                if (!agreeTerms) {
+                    this.showError('请同意用户协议');
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    this.showError('两次输入的密码不一致');
+                    return;
+                }
+                
+                if (!this.isValidEmail(email)) {
+                    this.showError('请输入有效的邮箱地址');
+                    return;
+                }
+                
+                if (!this.isStrongPassword(password)) {
+                    this.showError('密码强度不够，请包含大小写字母、数字和特殊字符');
+                    return;
+                }
+                
+                // 检查重复
+                if (this.authManager.users.some(u => u.studentId === studentId)) {
+                    this.showError('学号已被注册');
+                    return;
+                }
+                
+                if (this.authManager.users.some(u => u.username === username)) {
+                    this.showError('用户名已存在');
+                    return;
+                }
+                
+                if (this.authManager.users.some(u => u.email === email)) {
+                    this.showError('邮箱已被注册');
+                    return;
+                }
+                
+                // 创建新用户
+                const newUser = {
+                    id: 'user_' + Date.now(),
+                    studentId: studentId,
+                    username: username,
+                    email: email,
+                    password: password,
+                    avatar: `https://via.placeholder.com/50x50/667eea/ffffff?text=${username.charAt(0)}`,
+                    bio: isAdmin ? '系统管理员' : '这个人很懒，什么都没有留下...',
+                    followers: [],
+                    following: [],
+                    joinDate: Date.now(),
+                    posts: [],
+                    isAdmin: isAdmin
+                };
+                
+                this.authManager.users.push(newUser);
+                this.authManager.saveUsers();
+                
+                this.showSuccess('注册成功！请登录');
+                setTimeout(() => {
+                    this.switchTab('login');
+                    document.getElementById('loginStudentId').value = studentId;
+                }, 1500);
+            }
+            
+            checkPasswordStrength(password) {
+                const strengthIndicator = document.getElementById('passwordStrength');
+                if (!strengthIndicator) return;
+                
+                let strength = 0;
+                let strengthText = '';
+                let strengthClass = '';
+                
+                if (password.length >= 6) strength++;
+                if (/[a-z]/.test(password)) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^\w\s]/.test(password)) strength++;
+                
+                switch (strength) {
+                    case 0:
+                    case 1:
+                        strengthText = '密码强度：弱';
+                        strengthClass = 'weak';
+                        break;
+                    case 2:
+                    case 3:
+                        strengthText = '密码强度：中等';
+                        strengthClass = 'medium';
+                        break;
+                    case 4:
+                    case 5:
+                        strengthText = '密码强度：强';
+                        strengthClass = 'strong';
+                        break;
+                }
+                
+                strengthIndicator.textContent = strengthText;
+                strengthIndicator.className = `password-strength ${strengthClass}`;
+            }
+            
+            validatePasswordConfirm(confirmPassword) {
+                const password = document.getElementById('registerPassword').value;
+                const confirmHint = document.getElementById('confirmPasswordHint');
+                
+                if (!confirmHint) return;
+                
+                if (confirmPassword && password !== confirmPassword) {
+                    confirmHint.textContent = '密码不一致';
+                    confirmHint.style.color = '#e74c3c';
+                } else if (confirmPassword && password === confirmPassword) {
+                    confirmHint.textContent = '密码一致';
+                    confirmHint.style.color = '#27ae60';
+                } else {
+                    confirmHint.textContent = '';
+                }
+            }
+            
+            isValidEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+            
+            isStrongPassword(password) {
+                return password.length >= 6 &&
+                       /[a-z]/.test(password) &&
+                       /[A-Z]/.test(password) &&
+                       /[0-9]/.test(password);
+            }
+            
+            showError(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                const successDiv = document.getElementById('successMessage');
+                
+                successDiv.style.display = 'none';
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            showSuccess(message) {
+                const errorDiv = document.getElementById('errorMessage');
+                const successDiv = document.getElementById('successMessage');
+                
+                errorDiv.style.display = 'none';
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    successDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            clearMessages() {
+                document.getElementById('errorMessage').style.display = 'none';
+                document.getElementById('successMessage').style.display = 'none';
+            }
+        }
+        
+        // 初始化登录页面
+        document.addEventListener('DOMContentLoaded', () => {
+            new LoginPageAuth();
+        });
+    </script>
+</body>
+</html>
