@@ -547,6 +547,12 @@
                     return;
                 }
                 
+                // 检查账户是否被封禁
+                if (user.isBanned) {
+                    this.showError('您的账户已被封禁，请联系管理员');
+                    return;
+                }
+                
                 // 登录成功 - 设置当前用户数据
                 const currentUserData = {
                     id: user.id,
@@ -558,7 +564,8 @@
                     joinDate: user.joinDate || new Date().toISOString(),
                     followers: user.followers || [],
                     following: user.following || [],
-                    posts: user.posts || []
+                    posts: user.posts || [],
+                    isAdmin: user.isAdmin || false
                 };
                 
                 localStorage.setItem('currentUser', JSON.stringify(currentUserData));
@@ -572,7 +579,12 @@
                 
                 this.showSuccess('登录成功！正在跳转...');
                 setTimeout(() => {
-                    window.location.href = 'index.html';
+                    // 根据用户类型跳转到不同页面
+                    if (user.isAdmin) {
+                        window.location.href = 'admin.html';
+                    } else {
+                        window.location.href = 'index.html';
+                    }
                 }, 1500);
             }
             
