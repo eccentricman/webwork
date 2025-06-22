@@ -11,48 +11,8 @@ class AuthManager {
         if (usersData) {
             return JSON.parse(usersData);
         } else {
-            // 初始化示例用户
-            const initialUsers = [
-                {
-                    id: 'user1',
-                    studentId: '2021001',
-                    username: '张小明',
-                    email: 'zhangxiaoming@example.com',
-                    password: '123456',
-                    avatar: 'https://via.placeholder.com/50x50/667eea/ffffff?text=张',
-                    bio: '计算机科学与技术专业大三学生',
-                    joinDate: Date.now() - 86400000 * 365,
-                    followers: [],
-                    following: [],
-                    posts: []
-                },
-                {
-                    id: 'user2',
-                    studentId: '2021002',
-                    username: '李小红',
-                    email: 'lixiaohong@example.com',
-                    password: '123456',
-                    avatar: 'https://via.placeholder.com/50x50/764ba2/ffffff?text=李',
-                    bio: '文学院大二学生，喜欢阅读和写作',
-                    joinDate: Date.now() - 86400000 * 200,
-                    followers: [],
-                    following: [],
-                    posts: []
-                },
-                {
-                    id: 'user3',
-                    studentId: '2021003',
-                    username: '王大华',
-                    email: 'wangdahua@example.com',
-                    password: '123456',
-                    avatar: 'https://via.placeholder.com/50x50/f5576c/ffffff?text=王',
-                    bio: '美食爱好者',
-                    followers: ['user1'],
-                    following: ['user2'],
-                    joinDate: Date.now() - 86400000 * 100,
-                    posts: []
-                }
-            ];
+            // 如果没有用户数据，返回一个空数组
+            const initialUsers = [];
             this.saveUsers(initialUsers);
             return initialUsers;
         }

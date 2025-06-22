@@ -15,6 +15,13 @@ class CampusLifeApp {
         }
         
         this.loadUserData();
+        
+        // 检查管理员权限，如果是管理员则重定向到管理页面
+        if (this.currentUser && this.currentUser.isAdmin) {
+            window.location.href = 'admin.html';
+            return;
+        }
+        
         this.loadPosts();
         this.setupEventListeners();
         this.updateUI();
@@ -47,74 +54,13 @@ class CampusLifeApp {
         if (postsData) {
             this.posts = JSON.parse(postsData);
         } else {
-            // 初始化示例数据
-            this.posts = this.getInitialPosts();
+            // 如果没有帖子数据，返回一个空数组
+            this.posts = [];
             this.savePosts();
         }
     }
 
-    // 获取初始示例数据
-    getInitialPosts() {
-        return [
-            {
-                id: 1,
-                author: {
-                    name: '张小明',
-                    avatar: 'https://via.placeholder.com/50x50/667eea/ffffff?text=张',
-                    id: 'user1'
-                },
-                content: '今天的校园生活真是充实！刚刚参加完社团活动，认识了很多志同道合的朋友。大学生活就是要多尝试，多体验！ #校园生活 #社团活动',
-                images: ['https://via.placeholder.com/400x300/f093fb/ffffff?text=校园风景'],
-                tags: ['校园生活', '社团活动'],
-                timestamp: Date.now() - 3600000,
-                likes: 15,
-                comments: 3,
-                shares: 2,
-                privacy: 'public',
-                likedBy: [],
-                sharedBy: []
-            },
-            {
-                id: 2,
-                author: {
-                    name: '李小红',
-                    avatar: 'https://via.placeholder.com/50x50/764ba2/ffffff?text=李',
-                    id: 'user2'
-                },
-                content: '图书馆学习打卡📚 期末考试加油！和室友一起复习，效率翻倍～',
-                images: ['https://via.placeholder.com/400x300/667eea/ffffff?text=图书馆'],
-                tags: ['学习', '期末考试'],
-                timestamp: Date.now() - 7200000,
-                likes: 8,
-                comments: 1,
-                shares: 0,
-                privacy: 'public',
-                likedBy: [],
-                sharedBy: []
-            },
-            {
-                id: 3,
-                author: {
-                    name: '王大华',
-                    avatar: 'https://via.placeholder.com/50x50/f5576c/ffffff?text=王',
-                    id: 'user3'
-                },
-                content: '食堂新推出的麻辣香锅太好吃了！强烈推荐给大家～价格实惠，分量足够！',
-                images: [
-                    'https://via.placeholder.com/200x200/4facfe/ffffff?text=美食1',
-                    'https://via.placeholder.com/200x200/f093fb/ffffff?text=美食2'
-                ],
-                tags: ['美食', '食堂推荐'],
-                timestamp: Date.now() - 10800000,
-                likes: 22,
-                comments: 5,
-                shares: 3,
-                privacy: 'public',
-                likedBy: [],
-                sharedBy: []
-            }
-        ];
-    }
+
 
     // 设置事件监听器
     setupEventListeners() {
