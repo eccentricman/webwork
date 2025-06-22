@@ -135,14 +135,19 @@ class CampusLifeApp {
 
         // 动态交互事件
         document.addEventListener('click', (e) => {
-            if (e.target.matches('.action-btn[data-action="like"]')) {
-                this.handleLike(e.target);
-            } else if (e.target.matches('.action-btn[data-action="comment"]')) {
-                this.handleComment(e.target);
-            } else if (e.target.matches('.action-btn[data-action="share"]')) {
-                this.handleShare(e.target);
-            } else if (e.target.matches('.action-btn[data-action="follow"]')) {
-                this.handleFollow(e.target);
+            // 查找最近的按钮元素
+            const button = e.target.closest('.action-btn');
+            if (button) {
+                const action = button.getAttribute('data-action');
+                if (action === 'like') {
+                    this.handleLike(button);
+                } else if (action === 'comment') {
+                    this.handleComment(button);
+                } else if (action === 'share') {
+                    this.handleShare(button);
+                } else if (action === 'follow') {
+                    this.handleFollow(button);
+                }
             }
         });
 
@@ -299,45 +304,45 @@ class CampusLifeApp {
         ` : '';
 
         return `
-            <div class="post-item" data-post-id="${post.id}">
+            <div class="post-item" data-post-id="${post.id}" onclick="app.goToPostDetail(${post.id})" style="cursor: pointer;">
                 <div class="post-header">
-                    <img src="${post.author.avatar}" alt="${post.author.name}" class="post-avatar" onclick="app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">
+                    <img src="${post.author.avatar}" alt="${post.author.name}" class="post-avatar" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">
                     <div class="post-info">
-                        <div class="post-author" onclick="app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">${post.author.name}</div>
+                        <div class="post-author" onclick="event.stopPropagation(); app.goToUserProfile('${post.author.id}')" style="cursor: pointer;">${post.author.name}</div>
                         <div class="post-time">${timeAgo}</div>
                     </div>
                     <div class="post-menu">
-                        <button class="post-menu-btn" onclick="app.showPostMenu(${post.id})">
+                        <button class="post-menu-btn" onclick="event.stopPropagation(); app.showPostMenu(${post.id})">
                             <i class="fas fa-ellipsis-h"></i>
                         </button>
                     </div>
                 </div>
                 <div class="post-content">${post.content}</div>
                 ${post.isRepost && post.originalPost ? `
-                    <div class="repost-content" style="border: 1px solid #e1e8ed; border-radius: 8px; padding: 15px; margin-top: 10px; background: #f8f9fa; cursor: pointer;" onclick="app.showOriginalPost(${post.originalPost.id})">
+                    <div class="repost-content" style="border: 1px solid #e1e8ed; border-radius: 8px; padding: 15px; margin-top: 10px; background: #f8f9fa; cursor: pointer;" onclick="event.stopPropagation(); app.showOriginalPost(${post.originalPost.id})">
                         <div class="repost-header" style="display: flex; align-items: center; margin-bottom: 10px;">
-                            <img src="${post.originalPost.author.avatar}" alt="${post.originalPost.author.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;">
-                            <span style="font-weight: 600; color: #1da1f2;">@${post.originalPost.author.name}</span>
+                            <img src="${post.originalPost.author.avatar}" alt="${post.originalPost.author.name}" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')">
+                            <span style="font-weight: 600; color: #1da1f2;" onclick="event.stopPropagation(); app.goToUserProfile('${post.originalPost.author.id}')">@${post.originalPost.author.name}</span>
                             <span style="color: #657786; margin-left: 8px;">${this.getTimeAgo(post.originalPost.timestamp)}</span>
                         </div>
                         <div style="color: #14171a;">${post.originalPost.content}</div>
                         ${post.originalPost.images && post.originalPost.images.length > 0 ? `
                             <div style="margin-top: 10px;">
-                                ${post.originalPost.images.slice(0, 1).map(img => `<img src="${img}" alt="图片" style="max-width: 100%; border-radius: 4px;">`).join('')}
+                                ${post.originalPost.images.slice(0, 1).map(img => `<img src="${img}" alt="图片" style="max-width: 100%; border-radius: 4px;" onclick="event.stopPropagation(); app.showImageModal('${img}')">`).join('')}
                                 ${post.originalPost.images.length > 1 ? `<span style="color: #657786; font-size: 0.9rem;">+${post.originalPost.images.length - 1}张图片</span>` : ''}
                             </div>
                         ` : ''}
                     </div>
                 ` : ''}
-                ${!post.isRepost ? imagesHTML : ''}
+                ${!post.isRepost ? imagesHTML.replace(/onclick="app\.showImageModal\('/g, 'onclick="event.stopPropagation(); app.showImageModal(\'') : ''}
                 ${tagsHTML}
-                <div class="post-actions">
+                <div class="post-actions" onclick="event.stopPropagation();">
                     <div class="post-actions-left">
                         <button class="action-btn ${isLiked ? 'liked' : ''}" data-action="like" data-post-id="${post.id}">
                             <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i>
                             <span>${post.likes}</span>
                         </button>
-                        <button class="action-btn" data-action="comment" data-post-id="${post.id}">
+                        <button class="action-btn" onclick="app.goToPostDetail(${post.id})">
                             <i class="far fa-comment"></i>
                             <span>${post.comments}</span>
                         </button>
@@ -405,7 +410,7 @@ class CampusLifeApp {
         }
 
         const postId = parseInt(button.getAttribute('data-post-id'));
-        this.showCommentModal(postId);
+        this.goToPostDetail(postId);
     }
 
     // 处理分享
@@ -420,11 +425,7 @@ class CampusLifeApp {
         this.showShareModal(postId);
     }
 
-    // 显示评论模态框
-    showCommentModal(postId) {
-        // 这里可以实现评论功能
-        this.showNotification('评论功能开发中...', 'info');
-    }
+
 
     // 显示分享模态框
     showShareModal(postId) {
@@ -478,6 +479,11 @@ class CampusLifeApp {
             sessionStorage.setItem('viewingUserId', userId);
         }
         window.location.href = 'profile.html';
+    }
+
+    // 跳转到帖子详情页
+    goToPostDetail(postId) {
+        window.location.href = `post-detail.html?id=${postId}`;
     }
 
     // 显示原帖详情

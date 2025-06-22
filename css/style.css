@@ -357,6 +357,12 @@ body {
     margin-bottom: 15px;
     line-height: 1.6;
     color: var(--text-color);
+    word-wrap: break-word;
+    transition: var(--transition);
+}
+
+.post-content:hover {
+    color: var(--primary-color);
 }
 
 .post-images {
@@ -980,7 +986,9 @@ body {
 }
 
 .modal-large {
-    max-width: 800px;
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 800px;
 }
 
 @keyframes modalSlideIn {
@@ -1156,10 +1164,14 @@ body {
     transform: translateX(400px);
     transition: var(--transition);
     max-width: 350px;
+    opacity: 0;
+    visibility: hidden;
 }
 
 .notification.show {
     transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
 }
 
 .notification-content {
