@@ -199,6 +199,7 @@ class AuthManager {
             followers: [],
             following: [],
             posts: [],
+            bookmarks: [],
             isAdmin: isAdmin
         };
 
@@ -211,6 +212,15 @@ class AuthManager {
 
     // 登录成功
     loginSuccess(user, rememberMe) {
+        // 确保用户在users数组中（更新最新信息）
+        const userIndex = this.users.findIndex(u => u.id === user.id);
+        if (userIndex !== -1) {
+            this.users[userIndex] = user;
+        } else {
+            this.users.push(user);
+        }
+        this.saveUsers();
+        
         // 保存当前用户信息
         localStorage.setItem('currentUser', JSON.stringify(user));
         
@@ -235,6 +245,12 @@ class AuthManager {
 
     // 注册成功
     registerSuccess(user) {
+        // 确保用户在users数组中
+        if (!this.users.find(u => u.id === user.id)) {
+            this.users.push(user);
+            this.saveUsers();
+        }
+        
         // 保存当前用户信息
         localStorage.setItem('currentUser', JSON.stringify(user));
 

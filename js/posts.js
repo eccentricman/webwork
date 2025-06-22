@@ -10,17 +10,20 @@ class PostManager {
 
     // 设置事件监听器
     setupEventListeners() {
-        // 图片上传
+        // 图片上传 - 确保只绑定一次
         const imageInput = document.getElementById('imageInput');
-        if (imageInput) {
+        if (imageInput && !imageInput.hasAttribute('data-listener-bound')) {
             imageInput.addEventListener('change', (e) => {
                 this.handleImageSelection(e.target.files);
+                // 重置input值，允许重新选择同一文件
+                e.target.value = '';
             });
+            imageInput.setAttribute('data-listener-bound', 'true');
         }
 
-        // 拖拽上传
+        // 拖拽上传 - 确保只绑定一次
         const uploadArea = document.querySelector('.image-upload');
-        if (uploadArea) {
+        if (uploadArea && !uploadArea.hasAttribute('data-listener-bound')) {
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
@@ -38,8 +41,10 @@ class PostManager {
             });
 
             uploadArea.addEventListener('click', () => {
-                imageInput.click();
+                if (imageInput) imageInput.click();
             });
+            
+            uploadArea.setAttribute('data-listener-bound', 'true');
         }
 
         // 内容输入
@@ -71,13 +76,14 @@ class PostManager {
             });
         });
 
-        // 发布按钮
+        // 发布按钮 - 确保只绑定一次
         const publishBtn = document.getElementById('publishBtn');
-        if (publishBtn) {
+        if (publishBtn && !publishBtn.hasAttribute('data-listener-bound')) {
             publishBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.publishPost();
             });
+            publishBtn.setAttribute('data-listener-bound', 'true');
         }
 
         // 清空按钮
@@ -354,15 +360,10 @@ class PostManager {
         if (this.selectedImages.length === 0) return [];
         
         // 模拟上传延迟
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // 返回图片URL（实际项目中这里应该是真实的上传逻辑）
-        return this.selectedImages.map((img, index) => {
-            // 使用placeholder服务模拟上传后的图片URL
-            const colors = ['667eea', '764ba2', 'f093fb', 'f5576c', '4facfe'];
-            const color = colors[index % colors.length];
-            return `https://via.placeholder.com/400x300/${color}/ffffff?text=图片${index + 1}`;
-        });
+        // 返回真实的本地图片URL
+        return this.selectedImages.map(img => img.url);
     }
 
     // 设置发布状态

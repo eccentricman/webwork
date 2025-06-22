@@ -30,11 +30,6 @@
                     <i class="fas fa-plus-circle"></i>
                     <span>发布</span>
                 </a>
-                <a href="#" class="nav-link" data-page="messages">
-                    <i class="fas fa-envelope"></i>
-                    <span>消息</span>
-                    <span class="message-badge" id="messageBadge">0</span>
-                </a>
             </div>
             
             <div class="nav-auth">
@@ -93,6 +88,7 @@
                                 <button class="filter-btn active" data-filter="all">全部</button>
                                 <button class="filter-btn" data-filter="following">关注</button>
                                 <button class="filter-btn" data-filter="hot">热门</button>
+                                <button class="filter-btn" data-filter="bookmarked">收藏</button>
                             </div>
                         </div>
                         
@@ -107,22 +103,7 @@
                         <div class="sidebar-section">
                             <h3>热门话题</h3>
                             <div class="trending-topics">
-                                <div class="topic-item">
-                                    <span class="topic-tag">#学习日常</span>
-                                    <span class="topic-count">1.2k</span>
-                                </div>
-                                <div class="topic-item">
-                                    <span class="topic-tag">#校园生活</span>
-                                    <span class="topic-count">856</span>
-                                </div>
-                                <div class="topic-item">
-                                    <span class="topic-tag">#考试周</span>
-                                    <span class="topic-count">642</span>
-                                </div>
-                                <div class="topic-item">
-                                    <span class="topic-tag">#社团活动</span>
-                                    <span class="topic-count">423</span>
-                                </div>
+                                <!-- 热门话题将在这里动态生成 -->
                             </div>
                         </div>
                         
@@ -136,13 +117,10 @@
                         <div class="sidebar-section">
                             <h3>校园公告</h3>
                             <div class="announcements">
-                                <div class="announcement-item">
-                                    <div class="announcement-title">期末考试安排通知</div>
-                                    <div class="announcement-date">2024-01-15</div>
-                                </div>
-                                <div class="announcement-item">
-                                    <div class="announcement-title">图书馆开放时间调整</div>
-                                    <div class="announcement-date">2024-01-12</div>
+                                <!-- 校园公告将在这里动态生成 -->
+                                <div class="no-data">
+                                    <i class="fas fa-bullhorn"></i>
+                                    <p>暂无公告</p>
                                 </div>
                             </div>
                         </div>
@@ -219,10 +197,7 @@
                             <label>话题标签</label>
                             <input type="text" id="topicTags" placeholder="添加话题标签，用空格分隔">
                             <div class="tag-suggestions">
-                                <span class="tag-suggestion">#学习日常</span>
-                                <span class="tag-suggestion">#校园生活</span>
-                                <span class="tag-suggestion">#美食分享</span>
-                                <span class="tag-suggestion">#运动健身</span>
+                                <!-- 标签建议将在这里动态生成 -->
                             </div>
                         </div>
                         
@@ -282,8 +257,6 @@
         </div>
     </main>
 
-
-
     <!-- 动态详情模态框 -->
     <div class="modal" id="postDetailModal">
         <div class="modal-content modal-large">
@@ -334,6 +307,11 @@
                 window.socialManager = new SocialManager();
                 // 绑定社交管理器的更新事件
                 window.socialManager.init();
+            }
+            
+            // 初始化动态发布管理器
+            if (typeof PostManager !== 'undefined') {
+                window.postManager = new PostManager();
             }
         });
     </script>

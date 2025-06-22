@@ -454,6 +454,7 @@
             constructor() {
                 this.currentUser = null;
                 this.authManager = new AuthManager();
+                this.socialManager = new SocialManager();
                 this.init();
             }
 
@@ -487,7 +488,7 @@
                         u.id === viewingUserId
                     );
                     
-                    // 如果在users数组中找不到，尝试从posts中找到该用户的信息
+                    // 如果在users数组中找不到，尝试从posts中找到该用户的信息并创建真实用户信息
                     if (!this.viewingUser) {
                         const postsData = localStorage.getItem('posts');
                         if (postsData) {
@@ -502,11 +503,12 @@
                                 this.viewingUser = {
                                     id: postByUser.author.id,
                                     username: postByUser.author.name,
-                                    email: '暂无信息',
-                                    studentId: '暂无信息',
+                                    nickname: postByUser.author.name,
+                                    email: postByUser.author.email || '',
+                                    studentId: postByUser.author.studentId || '',
                                     avatar: postByUser.author.avatar || 'assets/images/avatars/default.jpg',
-                                    bio: '这个人很懒，什么都没有留下...',
-                                    joinDate: Date.now(),
+                                    bio: postByUser.author.bio || '这个人很懒，什么都没有留下...',
+                                    joinDate: postByUser.author.joinDate || Date.now(),
                                     followers: [],
                                     following: []
                                 };
@@ -648,11 +650,11 @@
                     this.src = defaultAvatar;
                 };
                 
-                document.getElementById('profileName').textContent = this.viewingUser.username || this.viewingUser.name || '用户名';
-                document.getElementById('profileEmail').textContent = this.viewingUser.email || '暂无信息';
-                document.getElementById('profileStudentId').textContent = `学号：${this.viewingUser.studentId || '暂无信息'}`;
+                document.getElementById('profileName').textContent = this.viewingUser.nickname || this.viewingUser.username || this.viewingUser.name || '用户名';
+                document.getElementById('profileEmail').textContent = this.viewingUser.email || '';
+                document.getElementById('profileStudentId').textContent = `学号：${this.viewingUser.studentId || ''}`;
                 
-                const joinDate = this.viewingUser.joinDate ? new Date(this.viewingUser.joinDate).toLocaleDateString() : '暂无信息';
+                const joinDate = this.viewingUser.joinDate ? new Date(this.viewingUser.joinDate).toLocaleDateString() : new Date().toLocaleDateString();
                 document.getElementById('profileJoinDate').textContent = `加入时间：${joinDate}`;
                 
                 // 更新统计数据 - 计算用户的真实动态数
@@ -660,26 +662,19 @@
                 const userPosts = allPosts.filter(post => post.author.id === this.viewingUser.id);
                 document.getElementById('postsCount').textContent = userPosts.length;
                 
-                // 获取真实的关注和粉丝数据（直接从users数组中获取）
-                if (window.authManager) {
-                    const userInUsers = window.authManager.users.find(u => u.id === this.viewingUser.id);
-                    if (userInUsers) {
-                        document.getElementById('followersCount').textContent = (userInUsers.followers || []).length;
-                        document.getElementById('followingCount').textContent = (userInUsers.following || []).length;
-                    } else {
-                        document.getElementById('followersCount').textContent = 0;
-                        document.getElementById('followingCount').textContent = 0;
-                    }
-                } else {
-                    document.getElementById('followersCount').textContent = 0;
-                    document.getElementById('followingCount').textContent = 0;
-                }
+                // 等待社交管理器初始化完成后更新关注数据
+                this.updateFollowCountsWhenReady();
+                
+                // 更新只读视图
+                document.getElementById('viewNickname').textContent = this.viewingUser.username || this.viewingUser.nickname || '';
+                document.getElementById('viewBio').textContent = this.viewingUser.bio || '';
+                document.getElementById('viewEmail').textContent = this.viewingUser.email || '';
                 
                 // 只有查看自己的资料时才填充编辑表单
                 if (!this.isViewingOther) {
-                    document.getElementById('editNickname').value = this.viewingUser.username;
+                    document.getElementById('editNickname').value = this.viewingUser.username || this.viewingUser.nickname || '';
                     document.getElementById('editBio').value = this.viewingUser.bio || '';
-                    document.getElementById('editEmail').value = this.viewingUser.email;
+                    document.getElementById('editEmail').value = this.viewingUser.email || '';
                 }
                 
                 // 如果查看其他用户，添加关注按钮
@@ -687,8 +682,32 @@
                     this.addFollowButton();
                 }
             }
+            
+            // 等待社交管理器准备好后更新关注数据
+            updateFollowCountsWhenReady() {
+                if (window.authManager && window.socialManager) {
+                    const userFollowData = window.socialManager.getUserFollowData(this.viewingUser.id);
+                    document.getElementById('followersCount').textContent = userFollowData.followers.length;
+                    document.getElementById('followingCount').textContent = userFollowData.following.length;
+                } else {
+                    // 如果社交管理器还没有准备好，等待一下再尝试
+                    setTimeout(() => this.updateFollowCountsWhenReady(), 100);
+                }
+            }
 
             addFollowButton() {
+                // 等待社交管理器初始化完成
+                if (!window.socialManager) {
+                    setTimeout(() => this.addFollowButton(), 100);
+                    return;
+                }
+                
+                // 确保当前用户已加载
+                if (!window.socialManager.getCurrentUser()) {
+                    setTimeout(() => this.addFollowButton(), 100);
+                    return;
+                }
+                
                 // 在头像区域添加关注按钮
                 const actionButtons = document.querySelector('.action-buttons');
                 if (actionButtons && !document.getElementById('followButton')) {
@@ -696,12 +715,19 @@
                     followBtn.id = 'followButton';
                     followBtn.className = 'btn btn-primary follow-btn';
                     followBtn.dataset.userId = this.viewingUser.id;
-                    followBtn.innerHTML = '<i class="fas fa-user-plus"></i> 关注';
                     
                     // 检查是否已关注
-                    if (window.socialManager && window.socialManager.isFollowing(this.viewingUser.id)) {
+                    const isFollowing = window.socialManager.isFollowing(this.viewingUser.id);
+                    console.log('addFollowButton (第一个位置): 检查关注状态', {
+                        viewingUserId: this.viewingUser.id,
+                        isFollowing: isFollowing
+                    });
+                    
+                    if (isFollowing) {
                         followBtn.classList.add('following');
                         followBtn.innerHTML = '<i class="fas fa-user-check"></i> 已关注';
+                    } else {
+                        followBtn.innerHTML = '<i class="fas fa-user-plus"></i> 关注';
                     }
                     
                     // 添加点击事件监听器
@@ -721,12 +747,19 @@
                     followBtn.id = 'followButton';
                     followBtn.className = 'btn btn-primary follow-btn';
                     followBtn.dataset.userId = this.viewingUser.id;
-                    followBtn.innerHTML = '<i class="fas fa-user-plus"></i> 关注';
                     
                     // 检查是否已关注
-                    if (window.socialManager && window.socialManager.isFollowing(this.viewingUser.id)) {
+                    const isFollowing = window.socialManager.isFollowing(this.viewingUser.id);
+                    console.log('addFollowButton (第二个位置): 检查关注状态', {
+                        viewingUserId: this.viewingUser.id,
+                        isFollowing: isFollowing
+                    });
+                    
+                    if (isFollowing) {
                         followBtn.classList.add('following');
                         followBtn.innerHTML = '<i class="fas fa-user-check"></i> 已关注';
+                    } else {
+                        followBtn.innerHTML = '<i class="fas fa-user-plus"></i> 关注';
                     }
                     
                     // 添加点击事件监听器
@@ -834,23 +867,95 @@
             loadUserPosts() {
                 const postsContainer = document.getElementById('userPosts');
                 const allPosts = JSON.parse(localStorage.getItem('posts') || '[]');
-                const userPosts = allPosts.filter(post => post.author.id === this.viewingUser.id);
+                let userPosts = allPosts.filter(post => String(post.author.id) === String(this.viewingUser.id));
+
+                // 如果查看的是其他用户的资料，需要根据可见性过滤动态
+                if (this.isViewingOther && this.currentUser) {
+                    userPosts = userPosts.filter(post => {
+                        const privacy = post.privacy || 'public';
+                        
+                        // 公开动态：所有人可见
+                        if (privacy === 'public') {
+                            return true;
+                        }
+                        
+                        // 私有动态：只有作者自己可见
+                        if (privacy === 'private') {
+                            return false; // 查看其他人时，私有动态不可见
+                        }
+                        
+                        // 好友可见动态：只有互相关注的用户可见
+                        if (privacy === 'friends') {
+                            // 检查是否互相关注（好友关系）
+                            if (window.socialManager) {
+                                const currentUserFollowing = window.socialManager.getUserFollowData(this.currentUser.id).following || [];
+                                const postAuthorFollowing = window.socialManager.getUserFollowData(post.author.id).following || [];
+                                
+                                // 互相关注才是好友
+                                const isCurrentUserFollowingAuthor = currentUserFollowing.some(id => String(id) === String(post.author.id));
+                                const isAuthorFollowingCurrentUser = postAuthorFollowing.some(id => String(id) === String(this.currentUser.id));
+                                
+                                return isCurrentUserFollowingAuthor && isAuthorFollowingCurrentUser;
+                            }
+                            return false;
+                        }
+                        
+                        return true;
+                    });
+                }
 
                 if (userPosts.length === 0) {
-                    postsContainer.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">还没有发布任何动态</p>';
+                    const emptyMessage = this.isViewingOther ? 
+                        '该用户还没有发布任何可见的动态' : 
+                        '还没有发布任何动态';
+                    postsContainer.innerHTML = `<p style="text-align: center; color: #666; padding: 40px;">${emptyMessage}</p>`;
                     return;
                 }
 
-                postsContainer.innerHTML = userPosts.map(post => `
-                    <div class="post-item">
-                        <div class="post-content">${post.content}</div>
-                        <div class="post-meta">
-                            <span>${this.getTimeAgo(post.timestamp)}</span>
-                            <span style="margin-left: 20px;">❤️ ${post.likes?.length || 0}</span>
-                            <span style="margin-left: 10px;">💬 ${post.comments?.length || 0}</span>
+                postsContainer.innerHTML = userPosts.map(post => {
+                    // 添加可见性标识（仅在查看自己的动态时显示）
+                    let privacyIndicator = '';
+                    if (!this.isViewingOther && post.privacy) {
+                        const privacyIcons = {
+                            'public': '<i class="fas fa-globe" title="公开"></i>',
+                            'friends': '<i class="fas fa-users" title="仅好友"></i>',
+                            'private': '<i class="fas fa-lock" title="仅自己"></i>'
+                        };
+                        privacyIndicator = `<span class="privacy-indicator">${privacyIcons[post.privacy] || ''}</span>`;
+                    }
+                    
+                    return `
+                        <div class="post-item" data-post-id="${post.id}" style="cursor: pointer;">
+                            <div class="post-content">${post.content} ${privacyIndicator}</div>
+                            ${post.images && post.images.length > 0 ? `
+                                <div class="post-images" style="margin-top: 10px;">
+                                    ${post.images.slice(0, 3).map(img => `
+                                        <img src="${img}" alt="动态图片" style="max-width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin-right: 5px;" onerror="this.style.display='none'"/>
+                                    `).join('')}
+                                    ${post.images.length > 3 ? `<span style="color: #666;">+${post.images.length - 3}张图片</span>` : ''}
+                                </div>
+                            ` : ''}
+                            <div class="post-meta">
+                                <span>${this.getTimeAgo(post.timestamp)}</span>
+                                <span style="margin-left: 20px;">❤️ ${post.likes || 0}</span>
+                                <span style="margin-left: 10px;">💬 ${post.comments || 0}</span>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
+                
+                // 添加点击事件监听器
+                postsContainer.querySelectorAll('.post-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const postId = item.dataset.postId;
+                        this.goToPostDetail(postId);
+                    });
+                });
+            }
+            
+            goToPostDetail(postId) {
+                // 跳转到动态详情页
+                window.location.href = `post-detail.html?id=${postId}`;
             }
 
             updateUserInStorage() {
@@ -971,11 +1076,13 @@
                 const followBtn = document.createElement('button');
                 followBtn.id = 'followBtn';
                 followBtn.className = `btn ${isFollowing ? 'btn-secondary' : 'btn-primary'} follow-btn`;
-                followBtn.dataset.userId = this.viewingUser.id;
+                followBtn.dataset.userId = String(this.viewingUser.id);
                 followBtn.innerHTML = isFollowing ? '<i class="fas fa-user-check"></i> 已关注' : '<i class="fas fa-user-plus"></i> 关注';
                 followBtn.style.marginTop = '20px';
                 
-                followBtn.addEventListener('click', () => {
+                followBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     this.toggleFollow();
                 });
                 
@@ -1080,21 +1187,29 @@
                 // 使用socialManager处理关注逻辑
                 window.socialManager.toggleFollow(this.viewingUser.id);
                 
-                // 更新按钮状态
-                const followBtn = document.getElementById('followButton') || document.getElementById('followBtn');
+                // 立即更新按钮状态
+                const followBtn = document.getElementById('followButton');
                 if (followBtn) {
                     const isFollowing = window.socialManager.isFollowing(this.viewingUser.id);
-                    if (isFollowing) {
-                        followBtn.classList.add('following');
-                        followBtn.innerHTML = '<i class="fas fa-user-check"></i> 已关注';
-                    } else {
-                        followBtn.classList.remove('following');
-                        followBtn.innerHTML = '<i class="fas fa-user-plus"></i> 关注';
-                    }
+                    followBtn.classList.toggle('following', isFollowing);
+                    followBtn.innerHTML = isFollowing ? 
+                        '<i class="fas fa-user-check"></i> 已关注' : 
+                        '<i class="fas fa-user-plus"></i> 关注';
                 }
                 
                 // 更新统计数据
-                this.loadUserProfile();
+                setTimeout(() => {
+                    this.updateFollowCounts();
+                }, 100);
+            }
+            
+            // 更新关注数统计
+            updateFollowCounts() {
+                if (window.socialManager) {
+                    const userFollowData = window.socialManager.getUserFollowData(this.viewingUser.id);
+                    document.getElementById('followersCount').textContent = userFollowData.followers.length;
+                    document.getElementById('followingCount').textContent = userFollowData.following.length;
+                }
             }
         }
 
@@ -1120,107 +1235,74 @@
             }
         }
 
-        // 个人资料管理
-        const profileManager = {
-            loadUserProfile() {
-                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-                if (currentUser) {
-                    // 更新只读视图
-                    document.getElementById('viewNickname').textContent = currentUser.nickname || '';
-                    document.getElementById('viewBio').textContent = currentUser.bio || '';
-                    document.getElementById('viewEmail').textContent = currentUser.email || '';
-                    
-                    // 更新编辑表单
-                    document.getElementById('editNickname').value = currentUser.nickname || '';
-                    document.getElementById('editBio').value = currentUser.bio || '';
-                    document.getElementById('editEmail').value = currentUser.email || '';
-                }
-            },
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 确保先初始化社交管理器
+            if (typeof SocialManager !== 'undefined') {
+                window.socialManager = new SocialManager();
+            }
             
+            window.profileManager = new ProfileManager();
+            
+            // 暴露managers到全局
+            window.authManager = window.profileManager.authManager;
+            // 使用已初始化的社交管理器
+            if (!window.socialManager) {
+                window.socialManager = window.profileManager.socialManager;
+            }
+            
+            // 绑定表单提交事件
+            document.getElementById('profileForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                window.profileManager.updateProfile();
+            });
+            document.getElementById('passwordForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                window.profileManager.changePassword();
+            });
+        });
+        
+        // 全局函数，兼容HTML中的onclick调用
+        const profileManager = {
             enableEdit() {
-                document.getElementById('profileView').style.display = 'none';
-                document.getElementById('profileEdit').style.display = 'block';
+                if (window.profileManager) {
+                    // 重新加载当前用户数据，确保编辑表单有正确的值
+                    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                    if (currentUser) {
+                        // 确保使用正确的字段名
+                        document.getElementById('editNickname').value = currentUser.username || currentUser.nickname || '';
+                        document.getElementById('editBio').value = currentUser.bio || '';
+                        document.getElementById('editEmail').value = currentUser.email || '';
+                    }
+                    
+                    document.getElementById('profileView').style.display = 'none';
+                    document.getElementById('profileEdit').style.display = 'block';
+                }
             },
             
             cancelEdit() {
                 document.getElementById('profileEdit').style.display = 'none';
                 document.getElementById('profileView').style.display = 'block';
                 // 重新加载数据，取消未保存的更改
-                this.loadUserProfile();
-            },
-            
-            saveProfile(event) {
-                event.preventDefault();
-                
-                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-                if (!currentUser) {
-                    alert('用户未登录');
-                    return;
+                if (window.profileManager) {
+                    window.profileManager.loadUserProfile();
                 }
-
-                const nickname = document.getElementById('editNickname').value;
-                const bio = document.getElementById('editBio').value;
-                const email = document.getElementById('editEmail').value;
-
-                // 更新用户信息
-                currentUser.nickname = nickname;
-                currentUser.bio = bio;
-                currentUser.email = email;
-
-                // 保存到localStorage
-                localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-                // 更新显示
-                this.loadUserProfile();
-                updateUserDisplay();
-                
-                // 切换回只读模式
-                this.cancelEdit();
-                
-                // 显示成功消息
-                this.showSuccessMessage('个人信息保存成功！');
             },
             
-            showSuccessMessage(message) {
-                // 创建成功提示
-                const successDiv = document.createElement('div');
-                successDiv.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background-color: #28a745;
-                    color: white;
-                    padding: 15px 20px;
-                    border-radius: 5px;
-                    z-index: 1000;
-                    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-                `;
-                successDiv.textContent = message;
-                document.body.appendChild(successDiv);
-                
-                // 3秒后自动消失
-                setTimeout(() => {
-                    if (successDiv.parentNode) {
-                        successDiv.parentNode.removeChild(successDiv);
-                    }
-                }, 3000);
+            showFollowersList() {
+                if (window.profileManager) {
+                    window.profileManager.showFollowersList();
+                }
+            },
+            
+            showFollowingList() {
+                if (window.profileManager) {
+                    window.profileManager.showFollowingList();
+                }
             }
         };
         
-        // 兼容旧函数名
-        function loadUserProfile() {
-            if (window.profileManager) {
-                window.profileManager.loadUserProfile();
-            } else {
-                profileManager.loadUserProfile();
-            }
-        }
-        
-        function saveProfile(event) {
-            profileManager.saveProfile(event);
-        }
-
-        // 密码管理
+        // 密码管理器全局函数
         const passwordManager = {
             enableEdit() {
                 document.getElementById('passwordView').style.display = 'none';
@@ -1233,60 +1315,8 @@
                 // 清空密码输入框
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmNewPassword').value = '';
-            },
-            
-            changePassword(event) {
-                event.preventDefault();
-                
-                const newPassword = document.getElementById('newPassword').value;
-                const confirmPassword = document.getElementById('confirmNewPassword').value;
-
-                if (!newPassword || !confirmPassword) {
-                    alert('请填写完整的密码信息');
-                    return;
-                }
-
-                if (newPassword !== confirmPassword) {
-                    alert('两次输入的密码不一致');
-                    return;
-                }
-
-                if (newPassword.length < 6) {
-                    alert('密码长度至少6位');
-                    return;
-                }
-
-                // 更新用户密码
-                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-                if (currentUser) {
-                    currentUser.password = newPassword;
-                    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-                }
-
-                // 切换回只读模式
-                this.cancelEdit();
-                
-                // 显示成功消息
-                profileManager.showSuccessMessage('密码修改成功！');
             }
         };
-        
-        // 兼容旧函数名
-        function changePassword(event) {
-            passwordManager.changePassword(event);
-        }
-
-                // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            window.profileManager = new ProfileManager();
-            updateUserDisplay();
-            profileManager.loadUserProfile();
-            loadUserPosts();
-            
-            // 绑定表单提交事件
-             document.getElementById('profileForm').addEventListener('submit', profileManager.saveProfile.bind(profileManager));
-             document.getElementById('passwordForm').addEventListener('submit', passwordManager.changePassword.bind(passwordManager));
-        });
     </script>
 </body>
 </html>

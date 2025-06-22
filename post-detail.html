@@ -355,6 +355,11 @@
                 const userData = localStorage.getItem('currentUser');
                 if (userData) {
                     this.currentUser = JSON.parse(userData);
+                    // 确保用户有bookmarks字段
+                    if (!this.currentUser.bookmarks) {
+                        this.currentUser.bookmarks = [];
+                        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                    }
                 }
             }
             
@@ -400,7 +405,7 @@
                 
                 const timeAgo = this.getTimeAgo(this.post.timestamp);
                 const isLiked = this.currentUser && this.post.likedBy.includes(this.currentUser.id);
-                const isShared = this.currentUser && this.post.sharedBy.includes(this.currentUser.id);
+                const isBookmarked = this.currentUser && this.currentUser.bookmarks && this.currentUser.bookmarks.includes(this.post.id);
                 
                 const imagesHTML = this.post.images && this.post.images.length > 0 ? `
                     <div class="post-images ${this.post.images.length === 1 ? 'single' : this.post.images.length === 2 ? 'double' : 'multiple'}">
@@ -440,9 +445,8 @@
                                     <i class="far fa-comment"></i>
                                     <span id="commentCountBtn">${this.post.comments}</span>
                                 </button>
-                                <button class="action-btn ${isShared ? 'shared' : ''}" onclick="postDetailManager.handleShare()">
-                                    <i class="fas fa-share"></i>
-                                    <span id="shareCount">${this.post.shares}</span>
+                                <button class="action-btn ${isBookmarked ? 'bookmarked' : ''}" onclick="postDetailManager.handleBookmark()">
+                                    <i class="${isBookmarked ? 'fas' : 'far'} fa-bookmark"></i>
                                 </button>
                             </div>
                         </div>
@@ -604,16 +608,53 @@
                 }
             }
             
-            handleShare() {
+
+            
+            handleBookmark() {
                 if (!this.currentUser) {
                     this.showNotification('请先登录', 'warning');
                     return;
                 }
                 
-                if (window.socialManager) {
-                    window.socialManager.openShareModal(this.postId);
+                // 确保用户有bookmarks数组
+                if (!this.currentUser.bookmarks) {
+                    this.currentUser.bookmarks = [];
+                }
+                
+                const isBookmarked = this.currentUser.bookmarks.includes(this.postId);
+                
+                if (isBookmarked) {
+                    // 取消收藏
+                    this.currentUser.bookmarks = this.currentUser.bookmarks.filter(id => id !== this.postId);
+                    this.showNotification('已取消收藏', 'info');
                 } else {
-                    this.showNotification('分享功能未加载', 'warning');
+                    // 添加收藏
+                    this.currentUser.bookmarks.push(this.postId);
+                    this.showNotification('已添加到收藏', 'success');
+                }
+                
+                // 更新本地存储
+                localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+                
+                // 更新users数组中的用户信息
+                const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+                const userIndex = allUsers.findIndex(u => u.id === this.currentUser.id);
+                if (userIndex !== -1) {
+                    allUsers[userIndex].bookmarks = this.currentUser.bookmarks;
+                    localStorage.setItem('users', JSON.stringify(allUsers));
+                }
+                
+                // 更新按钮状态
+                this.updateBookmarkButton();
+            }
+            
+            updateBookmarkButton() {
+                const bookmarkBtn = document.querySelector('.action-btn[onclick*="handleBookmark"]');
+                const isBookmarked = this.currentUser && this.currentUser.bookmarks && this.currentUser.bookmarks.includes(this.postId);
+                
+                if (bookmarkBtn) {
+                    bookmarkBtn.className = `action-btn ${isBookmarked ? 'bookmarked' : ''}`;
+                    bookmarkBtn.querySelector('i').className = `${isBookmarked ? 'fas' : 'far'} fa-bookmark`;
                 }
             }
             

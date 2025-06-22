@@ -9,12 +9,19 @@ class SocialManager {
 
     // 设置事件监听器
     setupEventListeners() {
-        // 关注/取消关注按钮
+        // 关注/取消关注按钮 - 只处理没有特殊处理的按钮
         document.addEventListener('click', (e) => {
             if (e.target.matches('.follow-btn') || e.target.closest('.follow-btn')) {
+                // 如果事件已经被阻止传播，则不处理
+                if (e.defaultPrevented) return;
+                
                 const btn = e.target.matches('.follow-btn') ? e.target : e.target.closest('.follow-btn');
                 const userId = btn.dataset.userId;
-                if (userId) {
+                
+                // 只处理在首页等地方的关注按钮，不处理个人页面的按钮
+                if (userId && !btn.id) {
+                    e.preventDefault();
+                    e.stopPropagation();
                     this.toggleFollow(userId);
                 }
             }
@@ -57,7 +64,7 @@ class SocialManager {
     // 通过ID获取用户
     getUserById(userId) {
         if (!window.authManager) return null;
-        return window.authManager.users.find(u => u.id === parseInt(userId));
+        return window.authManager.users.find(u => String(u.id) === String(userId));
     }
 
     // 加载消息数据
@@ -98,23 +105,40 @@ class SocialManager {
             return;
         }
 
-        const targetUserId = parseInt(userId);
-        if (currentUser.id === targetUserId) {
+        // 确保userId是字符串类型（因为用户ID是字符串格式）
+        const targetUserId = String(userId);
+        if (!targetUserId || targetUserId === 'undefined' || targetUserId === 'null') {
+            this.showNotification('无效的用户ID', 'error');
+            return;
+        }
+
+        if (String(currentUser.id) === targetUserId) {
             this.showNotification('不能关注自己', 'warning');
             return;
         }
 
-        if (!window.authManager) {
-            this.showNotification('系统错误', 'error');
+        if (!window.authManager || !window.authManager.users) {
+            this.showNotification('系统错误：用户管理器未初始化', 'error');
             return;
         }
 
         // 获取当前用户和目标用户在users数组中的引用
-        const currentUserInUsers = window.authManager.users.find(u => u.id === currentUser.id);
-        const targetUser = window.authManager.users.find(u => u.id === targetUserId);
+        const currentUserInUsers = window.authManager.users.find(u => 
+            String(u.id) === String(currentUser.id)
+        );
+        const targetUser = window.authManager.users.find(u => 
+            String(u.id) === targetUserId
+        );
 
-        if (!currentUserInUsers || !targetUser) {
-            this.showNotification('用户不存在', 'error');
+        if (!currentUserInUsers) {
+            this.showNotification('当前用户信息不存在', 'error');
+            console.error('Current user not found in users array:', currentUser.id, window.authManager.users);
+            return;
+        }
+
+        if (!targetUser) {
+            this.showNotification('目标用户不存在', 'error');
+            console.error('Target user not found in users array:', targetUserId, window.authManager.users);
             return;
         }
 
@@ -122,17 +146,31 @@ class SocialManager {
         if (!currentUserInUsers.following) currentUserInUsers.following = [];
         if (!targetUser.followers) targetUser.followers = [];
 
-        const isFollowing = currentUserInUsers.following.includes(targetUserId);
+        const isFollowing = currentUserInUsers.following.some(id => String(id) === targetUserId);
+        console.log('toggleFollow: 当前关注状态', {
+            currentUserId: currentUser.id,
+            targetUserId: targetUserId,
+            isFollowing: isFollowing,
+            followingArray: currentUserInUsers.following
+        });
 
         if (isFollowing) {
             // 取消关注：从我的关注列表中移除，从对方的粉丝列表中移除
-            currentUserInUsers.following = currentUserInUsers.following.filter(id => id !== targetUserId);
-            targetUser.followers = targetUser.followers.filter(id => id !== currentUser.id);
+            currentUserInUsers.following = currentUserInUsers.following.filter(id => String(id) !== targetUserId);
+            targetUser.followers = targetUser.followers.filter(id => String(id) !== String(currentUser.id));
+            console.log('toggleFollow: 取消关注后', {
+                followingArray: currentUserInUsers.following,
+                followersArray: targetUser.followers
+            });
             this.showNotification('已取消关注', 'success');
         } else {
             // 关注：添加到我的关注列表，添加到对方的粉丝列表
             currentUserInUsers.following.push(targetUserId);
-            targetUser.followers.push(currentUser.id);
+            targetUser.followers.push(String(currentUser.id));
+            console.log('toggleFollow: 关注后', {
+                followingArray: currentUserInUsers.following,
+                followersArray: targetUser.followers
+            });
             this.showNotification('关注成功', 'success');
         }
 
@@ -150,12 +188,36 @@ class SocialManager {
     // 检查是否已关注
     isFollowing(userId) {
         const currentUser = this.getCurrentUser();
-        if (!currentUser || !window.authManager) return false;
+        if (!currentUser || !window.authManager) {
+            console.log('isFollowing: currentUser或authManager不存在', { currentUser, authManager: window.authManager });
+            return false;
+        }
 
-        const currentUserInUsers = window.authManager.users.find(u => u.id === currentUser.id);
-        if (!currentUserInUsers || !currentUserInUsers.following) return false;
+        // 直接从authManager.users数组中获取最新的用户数据
+        const currentUserInUsers = window.authManager.users.find(u => String(u.id) === String(currentUser.id));
+        if (!currentUserInUsers) {
+            console.log('isFollowing: 当前用户不在users数组中', { 
+                currentUserId: currentUser.id, 
+                usersArray: window.authManager.users 
+            });
+            return false;
+        }
 
-        return currentUserInUsers.following.includes(parseInt(userId));
+        // 确保following数组存在
+        if (!currentUserInUsers.following) {
+            currentUserInUsers.following = [];
+            window.authManager.saveUsers();
+        }
+
+        const result = currentUserInUsers.following.some(id => String(id) === String(userId));
+        console.log('isFollowing检查结果:', {
+            currentUserId: currentUser.id,
+            targetUserId: userId,
+            followingArray: currentUserInUsers.following,
+            isFollowing: result
+        });
+        
+        return result;
     }
 
     // 更新关注按钮状态
@@ -176,7 +238,7 @@ class SocialManager {
     getUserFollowData(userId) {
         if (!window.authManager) return { following: [], followers: [] };
         
-        const user = window.authManager.users.find(u => u.id === parseInt(userId));
+        const user = window.authManager.users.find(u => String(u.id) === String(userId));
         if (!user) return { following: [], followers: [] };
 
         return {
@@ -224,7 +286,7 @@ class SocialManager {
 
         const userFollowData = this.getUserFollowData(currentUser.id);
         return userFollowData.following.map(userId => {
-            return window.authManager.users.find(user => user.id === userId);
+            return window.authManager.users.find(user => String(user.id) === String(userId));
         }).filter(user => user);
     }
 
@@ -236,7 +298,7 @@ class SocialManager {
         const userFollowData = this.getUserFollowData(currentUser.id);
         
         return userFollowData.followers.map(userId => {
-            const user = window.authManager.users.find(u => u.id === userId);
+            const user = window.authManager.users.find(u => String(u.id) === String(userId));
             if (user) {
                 return {
                     ...user,
@@ -255,7 +317,7 @@ class SocialManager {
             return;
         }
 
-        const user = window.authManager ? window.authManager.users.find(u => u.id === parseInt(userId)) : null;
+        const user = window.authManager ? window.authManager.users.find(u => String(u.id) === String(userId)) : null;
         if (!user) {
             this.showNotification('用户不存在', 'error');
             return;
@@ -765,8 +827,8 @@ class SocialManager {
                     <div class="user-name">${user.username}</div>
                     <div class="user-reason">${user.reason}</div>
                 </div>
-                <button class="btn btn-sm btn-primary follow-btn" data-user-id="${user.id}">
-                    <i class="fas fa-user-plus"></i> 关注
+                <button class="btn btn-sm btn-primary profile-btn" onclick="viewUserProfile('${user.id}')">
+                    <i class="fas fa-user"></i> 查看资料
                 </button>
             </div>
         `).join('');

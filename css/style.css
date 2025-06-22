@@ -432,6 +432,11 @@ body {
     gap: 20px;
 }
 
+.post-actions-right {
+    display: flex;
+    gap: 10px;
+}
+
 .action-btn {
     display: flex;
     align-items: center;
@@ -457,6 +462,10 @@ body {
 
 .action-btn.shared {
     color: var(--success-color);
+}
+
+.action-btn.bookmarked {
+    color: var(--warning-color);
 }
 
 /* 侧边栏样式 */

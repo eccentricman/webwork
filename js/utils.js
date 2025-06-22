@@ -579,3 +579,34 @@ const utils = new Utils();
 
 // 导出到全局
 window.utils = utils;
+
+// 数据清理工具
+function clearAllData() {
+    if (confirm('确定要清空所有数据吗？这将删除所有用户、动态和关注关系数据。')) {
+        // 清空所有localStorage数据
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+                key.startsWith('users') || 
+                key.startsWith('posts') || 
+                key.startsWith('currentUser') || 
+                key.startsWith('followData') ||
+                key.startsWith('rememberUser')
+            )) {
+                keysToRemove.push(key);
+            }
+        }
+        
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // 清空sessionStorage
+        sessionStorage.clear();
+        
+        alert('数据已清空！页面将刷新。');
+        window.location.reload();
+    }
+}
+
+// 在控制台中暴露清理函数
+window.clearAllData = clearAllData;
